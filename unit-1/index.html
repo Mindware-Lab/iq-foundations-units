@@ -22,14 +22,14 @@
       useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         setContext({
-          unit: urlParams.get('unit') || '1',
-          focus: urlParams.get('focus') || 'Cognitive Restructuring',
-          game: urlParams.get('game') || 'anchor_noncat',
-          plan: urlParams.get('plan') || 'anchor_build',
-          zone: urlParams.get('zone') || 'psi',
-          obs: decodeURIComponent(urlParams.get('obs') || 'Demo observation'),
-          move: decodeURIComponent(urlParams.get('move') || 'Demo move'),
-          returnUrl: decodeURIComponent(urlParams.get('return') || '#')
+          unit: urlParams.get('unit'),
+          focus: urlParams.get('focus'),
+          game: urlParams.get('game'),
+          plan: urlParams.get('plan'),
+          zone: urlParams.get('zone'),
+          obs: decodeURIComponent(urlParams.get('obs') || ''),
+          move: decodeURIComponent(urlParams.get('move') || ''),
+          returnUrl: decodeURIComponent(urlParams.get('return') || 'https://mindware-lab.github.io/iq-assessments/game-switcher')
         });
       }, []);
       
@@ -206,9 +206,8 @@
         // Store completion in localStorage for Game Selector to read
         localStorage.setItem('lastUnitCompletion', JSON.stringify(completionData));
         
-        // In artifact demo, show alert instead of navigating
-        alert('Unit 1 Complete! In production, this would navigate back to Game Selector.\n\nCompletion data stored in localStorage.');
-        console.log('Unit completion data:', completionData);
+        // Navigate back to Game Selector
+        window.location.href = context?.returnUrl || 'https://mindware-lab.github.io/iq-assessments/game-switcher';
       };
       
       // Handle drill answer selection
