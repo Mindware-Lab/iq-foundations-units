@@ -1,1 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unit 1: Shift the story + test it</title>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="root"></div>
 
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const Unit1App = () => {
+      // Read context from URL params (passed by Game Selector)
+      const [context, setContext] = useState(null);
+      
+      useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        setContext({
+          unit: urlParams.get('unit') || '1',
+          focus: urlParams.get('focus') || 'Cognitive Restructuring',
+          game: urlParams.get('game') || 'anchor_noncat',
+          plan: urlParams.get('plan') || 'anchor_build',
+          zone: urlParams.get('zone') || 'psi',
+          obs: decodeURIComponent(urlParams.get('obs') || 'Demo observation'),
+          move: decodeURIComponent(urlParams.get('move') || 'Demo move'),
+          returnUrl: decodeURIComponent(urlParams.get('return') || '#')
+        });
+      }, []);
+      
+      // Exercise state
+      const [step, setStep] = useState(1);
+      const [situation, setSituation] = useState('');
+      const [autoStory, setAutoStory] = useState('');
+      const [reframe, setReframe] = useState('');
+      const [testAction, setTestAction] = useState('');
+      const [showReframeHelp, setShowReframeHelp] = useState(false);
+      const [showTestHelp, setShowTestHelp] = useState(false);
+      
+      // Drill state
+      const [currentScenario, setCurrentScenario] = useState(0);
+      const [drillAnswers, setDrillAnswers] = useState({});
+      const [showFeedback, setShowFeedback] = useState(false);
+      const [selectedAnswer, setSelectedAnswer] = useState(null);
+      
+      // Pattern detection for auto-story (Principle 6: Discrimination learning)
+      const detectPatterns = (text) => {
+        const flags = [];
+        if (/always|never|everyone|no one|completely|totally/i.test(text)) {
+          flags.push({
+            flag: "extreme_language",
+            hint: "⚠️ Notice: Your story uses extreme words like 'always' or 'never'. These are often distortions."
+          });
+        }
+        if (/thinks|believes|feels.*about me/i.test(text)) {
+          flags.push({
+            flag: "mind_reading",
+            hint: "⚠️ Notice: You're mind-reading (guessing what others think). This is hard to verify."
+          });
+        }
+        if (/I am|I'm.*(stupid|worthless|failure|loser|incompetent|useless)/i.test(text)) {
+          flags.push({
+            flag: "identity_attack",
+            hint: "⚠️ Notice: You're attacking your identity ('I am X'). Can you describe the action instead?"
+          });
+        }
+        return flags;
+      };
+      
+      const flags = detectPatterns(autoStory);
+      
+      // Discrimination drill scenarios
+      const drillScenarios = [
+        {
+          id: "scenario_1",
+          situation: "You got critical feedback in a meeting.",
+          autoStory: "I always mess everything up and everyone thinks I'm incompetent.",
+          
+          options: [
+            {
+              id: "A",
+              reframe: "This one piece of feedback means I can improve one specific thing.",
+              isCorrect: true,
+              feedback: "✅ Correct! This is specific, fair, and leads to action."
+            },
+            {
+              id: "B",
+              reframe: "I'm a total failure at everything I do.",
+              isCorrect: false,
+              feedback: "❌ Incorrect. This is extreme ('total', 'everything') and attacks identity."
+            },
+            {
+              id: "C",
+              reframe: "Everyone definitely thinks I'm stupid now.",
+              isCorrect: false,
+              feedback: "❌ Incorrect. This is mind-reading ('everyone thinks') with no evidence."
+            },
+            {
+              id: "D",
+              reframe: "The feedback doesn't matter anyway.",
+              isCorrect: false,
+              feedback: "❌ Incorrect. This dismisses reality instead of learning from it."
+            }
+          ]
+        },
+        
+        {
+          id: "scenario_2",
+          situation: "Your project deadline got moved up.",
+          autoStory: "I never get enough time and my boss is always setting me up to fail.",
+          
+          options: [
+            {
+              id: "A",
+              reframe: "This timeline is tight. I'll need to prioritize and maybe ask for help.",
+              isCorrect: true,
+              feedback: "✅ Correct! This acknowledges reality and identifies a doable next step."
+            },
+            {
+              id: "B",
+              reframe: "I never do anything right anyway.",
+              isCorrect: false,
+              feedback: "❌ Incorrect. Identity attack with extreme language ('never', 'anything')."
+            },
+            {
+              id: "C",
+              reframe: "My boss is definitely trying to make me look bad.",
+              isCorrect: false,
+              feedback: "❌ Incorrect. This is mind-reading ('definitely trying') and assumes malice."
+            },
+            {
+              id: "D",
+              reframe: "Everything is perfect and this will be easy!",
+              isCorrect: false,
+              feedback: "❌ Incorrect. Toxic positivity that ignores the real challenge."
+            }
+          ]
+        },
+        
+        {
+          id: "scenario_3",
+          situation: "You made a mistake at work.",
+          autoStory: "I'm incompetent and I'm going to get fired.",
+          
+          options: [
+            {
+              id: "A",
+              reframe: "I made one mistake. I can fix it and learn from it.",
+              isCorrect: true,
+              feedback: "✅ Correct! Specific, acknowledges the error, and points to action."
+            },
+            {
+              id: "B",
+              reframe: "I always screw everything up.",
+              isCorrect: false,
+              feedback: "❌ Incorrect. Extreme language ('always', 'everything')."
+            },
+            {
+              id: "C",
+              reframe: "Everyone probably thinks I'm an idiot now.",
+              isCorrect: false,
+              feedback: "❌ Incorrect. Mind-reading with no evidence."
+            },
+            {
+              id: "D",
+              reframe: "It doesn't matter because I'm worthless anyway.",
+              isCorrect: false,
+              feedback: "❌ Incorrect. Identity attack ('I'm worthless')."
+            }
+          ]
+        }
+      ];
+      
+      // Complete unit and return to Game Selector
+      const completeUnit = () => {
+        const correctCount = Object.values(drillAnswers).filter(a => a.isCorrect).length;
+        
+        const completionData = {
+          unitNumber: 1,
+          timestamp: new Date().toISOString(),
+          completed: true,
+          
+          // User inputs
+          situationInput: situation,
+          autoStoryInput: autoStory,
+          reframeInput: reframe,
+          testActionInput: testAction,
+          
+          // Performance
+          drillScore: correctCount,
+          drillTotal: drillScenarios.length,
+          drillPassed: correctCount >= 2,
+          
+          // Flags detected
+          patternsDetected: flags.map(f => f.flag),
+          
+          // Session type (CRITICAL for progress tracking)
+          sessionType: context?.game || 'anchor_noncat'
+        };
+        
+        // Store completion in localStorage for Game Selector to read
+        localStorage.setItem('lastUnitCompletion', JSON.stringify(completionData));
+        
+        // In artifact demo, show alert instead of navigating
+        alert('Unit 1 Complete! In production, this would navigate back to Game Selector.\n\nCompletion data stored in localStorage.');
+        console.log('Unit completion data:', completionData);
+      };
+      
+      // Handle drill answer selection
+      const handleDrillAnswer = (scenarioId, option) => {
+        setSelectedAnswer(option.id);
+        setShowFeedback(true);
+        
+        setDrillAnswers(prev => ({
+          ...prev,
+          [scenarioId]: option
+        }));
+      };
+      
+      const handleNextScenario = () => {
+        if (currentScenario < drillScenarios.length - 1) {
+          setCurrentScenario(currentScenario + 1);
+          setSelectedAnswer(null);
+          setShowFeedback(false);
+        } else {
+          // All scenarios complete
+          const correctCount = Object.values(drillAnswers).filter(a => a.isCorrect).length;
+          if (correctCount >= 2) {
+            // Passed - move to completion
+            setStep(6);
+          } else {
+            // Failed - offer retry
+            alert(`You got ${correctCount}/3 correct. You need at least 2/3 to pass. Let's try again!`);
+            setDrillAnswers({});
+            setCurrentScenario(0);
+            setSelectedAnswer(null);
+            setShowFeedback(false);
+          }
+        }
+      };
+
+      // Loading state
+      if (!context) {
+        return (
+          <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#E0E0E0' }}>
+            <div className="text-center">
+              <div className="text-2xl font-bold mb-2" style={{ color: '#333333' }}>Loading...</div>
+              <p style={{ color: '#6D6D6D' }}>Preparing your exercise</p>
+            </div>
+          </div>
+        );
+      }
+
+      // STEP 1: Situation capture
+      if (step === 1) {
+        return (
+          <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: '#E0E0E0' }}>
+            <div className="max-w-2xl mx-auto">
+              <div className="rounded-lg shadow-lg p-6 md:p-8" style={{ backgroundColor: '#FFFFFF' }}>
+                {/* Progress indicator */}
+                <div className="flex gap-2 mb-6">
+                  {[1,2,3,4,5].map(s => (
+                    <div key={s} style={{ 
+                      flex: 1, 
+                      height: '4px', 
+                      backgroundColor: s === step ? '#2764B7' : '#E0E0E0',
+                      borderRadius: '2px'
+                    }} />
+                  ))}
+                </div>
+                
+                <h1 className="text-2xl font-bold mb-2" style={{ color: '#333333' }}>
+                  Unit 1: Shift the story + test it
+                </h1>
+                <p className="text-sm mb-6" style={{ color: '#6D6D6D' }}>
+                  Step 1 of 5 • Cognitive Restructuring
+                </p>
+                
+                <h2 className="text-xl font-semibold mb-3" style={{ color: '#333333' }}>
+                  What's the situation?
+                </h2>
+                <p className="text-sm mb-4" style={{ color: '#6D6D6D' }}>
+                  Describe in 1-2 sentences what happened or what's bothering you.
+                </p>
+                
+                <textarea
+                  value={situation}
+                  onChange={(e) => setSituation(e.target.value)}
+                  placeholder="E.g., 'My manager gave me negative feedback in front of the team.'"
+                  className="w-full p-4 rounded-lg border-2 mb-4"
+                  style={{ borderColor: '#E0E0E0', minHeight: '120px' }}
+                  maxLength={200}
+                />
+                
+                <p className="text-xs mb-6" style={{ color: '#6D6D6D' }}>
+                  {situation.length}/200 characters
+                </p>
+                
+                <button
+                  onClick={() => situation.length >= 10 && setStep(2)}
+                  disabled={situation.length < 10}
+                  className="w-full py-3 px-6 rounded-lg font-semibold transition-all"
+                  style={{ 
+                    backgroundColor: situation.length >= 10 ? '#2764B7' : '#E0E0E0',
+                    color: situation.length >= 10 ? '#FFFFFF' : '#6D6D6D',
+                    cursor: situation.length >= 10 ? 'pointer' : 'not-allowed'
+                  }}>
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // STEP 2: Auto-story capture with real-time feedback
+      if (step === 2) {
+        return (
+          <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: '#E0E0E0' }}>
+            <div className="max-w-2xl mx-auto">
+              <div className="rounded-lg shadow-lg p-6 md:p-8" style={{ backgroundColor: '#FFFFFF' }}>
+                {/* Progress indicator */}
+                <div className="flex gap-2 mb-6">
+                  {[1,2,3,4,5].map(s => (
+                    <div key={s} style={{ 
+                      flex: 1, 
+                      height: '4px', 
+                      backgroundColor: s <= step ? '#2764B7' : '#E0E0E0',
+                      borderRadius: '2px'
+                    }} />
+                  ))}
+                </div>
+                
+                <h1 className="text-2xl font-bold mb-2" style={{ color: '#333333' }}>
+                  Unit 1: Shift the story + test it
+                </h1>
+                <p className="text-sm mb-6" style={{ color: '#6D6D6D' }}>
+                  Step 2 of 5 • Cognitive Restructuring
+                </p>
+                
+                <h2 className="text-xl font-semibold mb-3" style={{ color: '#333333' }}>
+                  What's your mind telling you about this?
+                </h2>
+                <p className="text-sm mb-4" style={{ color: '#6D6D6D' }}>
+                  What's the automatic story or interpretation?
+                </p>
+                
+                <textarea
+                  value={autoStory}
+                  onChange={(e) => setAutoStory(e.target.value)}
+                  placeholder="E.g., 'I'm terrible at my job and everyone thinks I'm incompetent.'"
+                  className="w-full p-4 rounded-lg border-2 mb-4"
+                  style={{ borderColor: '#E0E0E0', minHeight: '120px' }}
+                  maxLength={200}
+                />
+                
+                <p className="text-xs mb-4" style={{ color: '#6D6D6D' }}>
+                  {autoStory.length}/200 characters
+                </p>
+                
+                {/* Real-time discrimination feedback */}
+                {flags.length > 0 && (
+                  <div className="p-4 rounded-lg mb-4" style={{ backgroundColor: '#FFF9E6', border: '1px solid #FFD700' }}>
+                    <p className="text-sm font-semibold mb-2" style={{ color: '#333333' }}>
+                      💡 Pattern Detection:
+                    </p>
+                    {flags.map((flag, i) => (
+                      <p key={i} className="text-sm mb-2" style={{ color: '#333333' }}>
+                        {flag.hint}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep(1)}
+                    className="flex-1 py-3 px-6 rounded-lg font-semibold border-2 transition-all"
+                    style={{ borderColor: '#E0E0E0', color: '#333333', backgroundColor: '#FFFFFF' }}>
+                    Back
+                  </button>
+                  <button
+                    onClick={() => autoStory.length >= 10 && setStep(3)}
+                    disabled={autoStory.length < 10}
+                    className="flex-1 py-3 px-6 rounded-lg font-semibold transition-all"
+                    style={{ 
+                      backgroundColor: autoStory.length >= 10 ? '#2764B7' : '#E0E0E0',
+                      color: autoStory.length >= 10 ? '#FFFFFF' : '#6D6D6D',
+                      cursor: autoStory.length >= 10 ? 'pointer' : 'not-allowed'
+                    }}>
+                    Continue
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // STEP 3: Balanced reframe generation
+      if (step === 3) {
+        return (
+          <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: '#E0E0E0' }}>
+            <div className="max-w-2xl mx-auto">
+              <div className="rounded-lg shadow-lg p-6 md:p-8" style={{ backgroundColor: '#FFFFFF' }}>
+                {/* Progress indicator */}
+                <div className="flex gap-2 mb-6">
+                  {[1,2,3,4,5].map(s => (
+                    <div key={s} style={{ 
+                      flex: 1, 
+                      height: '4px', 
+                      backgroundColor: s <= step ? '#2764B7' : '#E0E0E0',
+                      borderRadius: '2px'
+                    }} />
+                  ))}
+                </div>
+                
+                <h1 className="text-2xl font-bold mb-2" style={{ color: '#333333' }}>
+                  Unit 1: Shift the story + test it
+                </h1>
+                <p className="text-sm mb-6" style={{ color: '#6D6D6D' }}>
+                  Step 3 of 5 • Cognitive Restructuring
+                </p>
+                
+                <h2 className="text-xl font-semibold mb-3" style={{ color: '#333333' }}>
+                  What's a more balanced version of this story?
+                </h2>
+                <p className="text-sm mb-4" style={{ color: '#6D6D6D' }}>
+                  Not 'everything is fine', but fairer and more accurate.
+                </p>
+                
+                {/* Help text toggle */}
+                <button 
+                  onClick={() => setShowReframeHelp(!showReframeHelp)}
+                  className="text-sm mb-4 underline"
+                  style={{ color: '#2764B7' }}>
+                  {showReframeHelp ? '▼ Hide tips' : '▶ Show tips: How to reframe'}
+                </button>
+                
+                {showReframeHelp && (
+                  <div className="p-4 rounded-lg mb-4" style={{ backgroundColor: '#F5F5F5' }}>
+                    <p className="text-sm font-semibold mb-2" style={{ color: '#333333' }}>Good reframes:</p>
+                    <ul className="text-sm mb-3 ml-4" style={{ color: '#333333' }}>
+                      <li>• Specific instead of global ("This presentation went poorly" not "I always fail")</li>
+                      <li>• Evidence-based ("My manager gave feedback" not "Everyone hates me")</li>
+                      <li>• Action-oriented ("I can improve X" not "I'm worthless")</li>
+                    </ul>
+                    <p className="text-sm font-semibold mb-2" style={{ color: '#333333' }}>Bad reframes:</p>
+                    <ul className="text-sm ml-4" style={{ color: '#333333' }}>
+                      <li>• Toxic positivity ("It's all perfect!")</li>
+                      <li>• Dismissing reality ("It didn't matter anyway")</li>
+                      <li>• Still attacking yourself ("I'm stupid but that's okay")</li>
+                    </ul>
+                  </div>
+                )}
+                
+                <textarea
+                  value={reframe}
+                  onChange={(e) => setReframe(e.target.value)}
+                  placeholder="E.g., 'My manager gave me one piece of critical feedback. I can learn from this without it meaning I'm terrible at everything.'"
+                  className="w-full p-4 rounded-lg border-2 mb-4"
+                  style={{ borderColor: '#E0E0E0', minHeight: '120px' }}
+                  maxLength={200}
+                />
+                
+                <p className="text-xs mb-6" style={{ color: '#6D6D6D' }}>
+                  {reframe.length}/200 characters
+                </p>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep(2)}
+                    className="flex-1 py-3 px-6 rounded-lg font-semibold border-2 transition-all"
+                    style={{ borderColor: '#E0E0E0', color: '#333333', backgroundColor: '#FFFFFF' }}>
+                    Back
+                  </button>
+                  <button
+                    onClick={() => reframe.length >= 15 && setStep(4)}
+                    disabled={reframe.length < 15}
+                    className="flex-1 py-3 px-6 rounded-lg font-semibold transition-all"
+                    style={{ 
+                      backgroundColor: reframe.length >= 15 ? '#2764B7' : '#E0E0E0',
+                      color: reframe.length >= 15 ? '#FFFFFF' : '#6D6D6D',
+                      cursor: reframe.length >= 15 ? 'pointer' : 'not-allowed'
+                    }}>
+                    Continue
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // STEP 4: Small behavioral test
+      if (step === 4) {
+        return (
+          <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: '#E0E0E0' }}>
+            <div className="max-w-2xl mx-auto">
+              <div className="rounded-lg shadow-lg p-6 md:p-8" style={{ backgroundColor: '#FFFFFF' }}>
+                {/* Progress indicator */}
+                <div className="flex gap-2 mb-6">
+                  {[1,2,3,4,5].map(s => (
+                    <div key={s} style={{ 
+                      flex: 1, 
+                      height: '4px', 
+                      backgroundColor: s <= step ? '#2764B7' : '#E0E0E0',
+                      borderRadius: '2px'
+                    }} />
+                  ))}
+                </div>
+                
+                <h1 className="text-2xl font-bold mb-2" style={{ color: '#333333' }}>
+                  Unit 1: Shift the story + test it
+                </h1>
+                <p className="text-sm mb-6" style={{ color: '#6D6D6D' }}>
+                  Step 4 of 5 • Cognitive Restructuring
+                </p>
+                
+                <h2 className="text-xl font-semibold mb-3" style={{ color: '#333333' }}>
+                  What's one small action that would test this balanced story?
+                </h2>
+                <p className="text-sm mb-4" style={{ color: '#6D6D6D' }}>
+                  Choose something you can do today (≤10 minutes).
+                </p>
+                
+                {/* Help text toggle */}
+                <button 
+                  onClick={() => setShowTestHelp(!showTestHelp)}
+                  className="text-sm mb-4 underline"
+                  style={{ color: '#2764B7' }}>
+                  {showTestHelp ? '▼ Hide tips' : '▶ Show tips: What makes a good test?'}
+                </button>
+                
+                {showTestHelp && (
+                  <div className="p-4 rounded-lg mb-4" style={{ backgroundColor: '#F5F5F5' }}>
+                    <p className="text-sm font-semibold mb-2" style={{ color: '#333333' }}>Good tests:</p>
+                    <ul className="text-sm mb-3 ml-4" style={{ color: '#333333' }}>
+                      <li>• Small and doable today</li>
+                      <li>• Would give you information</li>
+                      <li>• Tied to the reframe</li>
+                    </ul>
+                    <p className="text-sm font-semibold mb-2" style={{ color: '#333333' }}>Examples:</p>
+                    <ul className="text-sm mb-3 ml-4" style={{ color: '#333333' }}>
+                      <li>• "Ask my manager for one specific improvement suggestion"</li>
+                      <li>• "Review my last 3 successful projects"</li>
+                      <li>• "Check in with one colleague about how they saw the meeting"</li>
+                    </ul>
+                    <p className="text-sm font-semibold mb-2" style={{ color: '#333333' }}>Bad tests:</p>
+                    <ul className="text-sm ml-4" style={{ color: '#333333' }}>
+                      <li>• Vague ("Be more confident")</li>
+                      <li>• Too big ("Become perfect at everything")</li>
+                      <li>• Avoidance ("Never present again")</li>
+                    </ul>
+                  </div>
+                )}
+                
+                <textarea
+                  value={testAction}
+                  onChange={(e) => setTestAction(e.target.value)}
+                  placeholder="E.g., 'I'll ask my manager for one concrete suggestion on how to improve my presentations.'"
+                  className="w-full p-4 rounded-lg border-2 mb-4"
+                  style={{ borderColor: '#E0E0E0', minHeight: '120px' }}
+                  maxLength={150}
+                />
+                
+                <p className="text-xs mb-6" style={{ color: '#6D6D6D' }}>
+                  {testAction.length}/150 characters
+                </p>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep(3)}
+                    className="flex-1 py-3 px-6 rounded-lg font-semibold border-2 transition-all"
+                    style={{ borderColor: '#E0E0E0', color: '#333333', backgroundColor: '#FFFFFF' }}>
+                    Back
+                  </button>
+                  <button
+                    onClick={() => testAction.length >= 10 && setStep(5)}
+                    disabled={testAction.length < 10}
+                    className="flex-1 py-3 px-6 rounded-lg font-semibold transition-all"
+                    style={{ 
+                      backgroundColor: testAction.length >= 10 ? '#2764B7' : '#E0E0E0',
+                      color: testAction.length >= 10 ? '#FFFFFF' : '#6D6D6D',
+                      cursor: testAction.length >= 10 ? 'pointer' : 'not-allowed'
+                    }}>
+                    Continue
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // STEP 5: Discrimination drill (Principle 6)
+      if (step === 5) {
+        const scenario = drillScenarios[currentScenario];
+        
+        return (
+          <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: '#E0E0E0' }}>
+            <div className="max-w-2xl mx-auto">
+              <div className="rounded-lg shadow-lg p-6 md:p-8" style={{ backgroundColor: '#FFFFFF' }}>
+                {/* Progress indicator */}
+                <div className="flex gap-2 mb-6">
+                  {[1,2,3,4,5].map(s => (
+                    <div key={s} style={{ 
+                      flex: 1, 
+                      height: '4px', 
+                      backgroundColor: s <= step ? '#2764B7' : '#E0E0E0',
+                      borderRadius: '2px'
+                    }} />
+                  ))}
+                </div>
+                
+                <h1 className="text-2xl font-bold mb-2" style={{ color: '#333333' }}>
+                  Unit 1: Shift the story + test it
+                </h1>
+                <p className="text-sm mb-6" style={{ color: '#6D6D6D' }}>
+                  Step 5 of 5 • Discrimination Drill ({currentScenario + 1}/{drillScenarios.length})
+                </p>
+                
+                <h2 className="text-xl font-semibold mb-3" style={{ color: '#333333' }}>
+                  Let's test your reframing skills
+                </h2>
+                <p className="text-sm mb-6" style={{ color: '#6D6D6D' }}>
+                  Which of these is a good reframe?
+                </p>
+                
+                <div className="p-4 rounded-lg mb-6" style={{ backgroundColor: '#F5F5F5' }}>
+                  <p className="text-sm font-semibold mb-2" style={{ color: '#333333' }}>Situation:</p>
+                  <p className="text-sm mb-3" style={{ color: '#333333' }}>{scenario.situation}</p>
+                  <p className="text-sm font-semibold mb-2" style={{ color: '#333333' }}>Automatic thought:</p>
+                  <p className="text-sm" style={{ color: '#333333' }}>"{scenario.autoStory}"</p>
+                </div>
+                
+                <p className="text-sm font-semibold mb-3" style={{ color: '#333333' }}>
+                  Which reframe is best?
+                </p>
+                
+                <div className="space-y-3 mb-6">
+                  {scenario.options.map(option => (
+                    <button
+                      key={option.id}
+                      onClick={() => !showFeedback && handleDrillAnswer(scenario.id, option)}
+                      disabled={showFeedback}
+                      className="w-full p-4 rounded-lg border-2 text-left transition-all"
+                      style={{
+                        borderColor: selectedAnswer === option.id ? '#2764B7' : '#E0E0E0',
+                        backgroundColor: selectedAnswer === option.id ? '#E8F4FF' : '#FFFFFF',
+                        color: '#333333',
+                        cursor: showFeedback ? 'not-allowed' : 'pointer',
+                        opacity: showFeedback && selectedAnswer !== option.id ? 0.6 : 1
+                      }}>
+                      <span className="font-semibold">{option.id}.</span> {option.reframe}
+                    </button>
+                  ))}
+                </div>
+                
+                {showFeedback && (
+                  <div className="p-4 rounded-lg mb-6" style={{ 
+                    backgroundColor: drillAnswers[scenario.id].isCorrect ? '#F5FFE6' : '#FFE8E8',
+                    border: `2px solid ${drillAnswers[scenario.id].isCorrect ? '#CCFF66' : '#FF6B6B'}`
+                  }}>
+                    <p className="text-sm font-semibold mb-2" style={{ color: '#333333' }}>
+                      {drillAnswers[scenario.id].feedback}
+                    </p>
+                  </div>
+                )}
+                
+                {showFeedback && (
+                  <button
+                    onClick={handleNextScenario}
+                    className="w-full py-3 px-6 rounded-lg font-semibold transition-all"
+                    style={{ backgroundColor: '#2764B7', color: '#FFFFFF' }}>
+                    {currentScenario < drillScenarios.length - 1 ? 'Next Scenario' : 'Finish Drill'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // STEP 6: Completion
+      if (step === 6) {
+        const correctCount = Object.values(drillAnswers).filter(a => a.isCorrect).length;
+        
+        return (
+          <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: '#E0E0E0' }}>
+            <div className="max-w-2xl mx-auto">
+              <div className="rounded-lg shadow-lg p-6 md:p-8" style={{ backgroundColor: '#FFFFFF' }}>
+                <div className="text-center mb-6">
+                  <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✅</div>
+                  <h1 className="text-3xl font-bold mb-4" style={{ color: '#333333' }}>
+                    Unit 1 Complete!
+                  </h1>
+                  <p className="mb-4" style={{ color: '#6D6D6D' }}>
+                    You've practiced cognitive restructuring
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg mb-6" style={{ backgroundColor: '#F5FFE6', border: '2px solid #CCFF66' }}>
+                  <p className="font-semibold mb-2" style={{ color: '#333333' }}>Your Performance:</p>
+                  <p className="text-sm mb-2" style={{ color: '#333333' }}>
+                    Drill Score: {correctCount}/{drillScenarios.length} correct
+                  </p>
+                  {flags.length > 0 && (
+                    <p className="text-sm" style={{ color: '#333333' }}>
+                      Patterns detected: {flags.map(f => f.flag).join(', ')}
+                    </p>
+                  )}
+                </div>
+
+                <div className="p-4 rounded-lg mb-6" style={{ backgroundColor: '#E8F4FF', border: '1px solid #2764B7' }}>
+                  <p className="text-sm font-semibold mb-2" style={{ color: '#333333' }}>Your Action Plan:</p>
+                  <p className="text-sm mb-2" style={{ color: '#333333' }}>
+                    <strong>Test:</strong> {testAction}
+                  </p>
+                  <p className="text-xs mt-3" style={{ color: '#6D6D6D' }}>
+                    💡 Try this test today before your next session
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg mb-6" style={{ backgroundColor: '#FFF9E6', border: '1px solid #FFD700' }}>
+                  <p className="text-sm" style={{ color: '#333333' }}>
+                    <strong>Remember:</strong> Good reframes are specific, evidence-based, and action-oriented. 
+                    They don't dismiss reality or attack your identity.
+                  </p>
+                </div>
+
+                <button
+                  onClick={completeUnit}
+                  className="w-full py-3 px-6 rounded-lg font-semibold transition-all shadow-md"
+                  style={{ backgroundColor: '#2764B7', color: '#FFFFFF' }}>
+                  Return to Training
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return null;
+    };
+
+    ReactDOM.render(<Unit1App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
