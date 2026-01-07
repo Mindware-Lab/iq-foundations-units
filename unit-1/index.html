@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -216,6 +217,11 @@
           return String(id).toLowerCase().replace(/_/g, '-');
         };
 
+        const getCapMeta = (capId) => {
+          const found = CAPACITY_TAXONOMY.find(c => normalizeCapId(c.id) === normalizeCapId(capId));
+          return found || { id: capId, label: capId, definition: '' };
+        };
+
         const [context, setContext] = useState({
           unit: null, plan: null, game: null, speed: null, interference: null, hand: null,
           zone: null, cap: null, capLabel: null, capDef: null, capMatch: null,
@@ -236,13 +242,6 @@
           loggedCapDef: null
         });
         const [showBridge, setShowBridge] = useState(false);
-
-        const [capacityPairCheck, setCapacityPairCheck] = useState({
-          selectedPair: [],
-          attempts: 0,
-          correct: null,
-          feedback: null
-        });
 
         const [scenarioAnswers, setScenarioAnswers] = useState({
           A: {
@@ -265,6 +264,9 @@
 
         const [telemetry, setTelemetry] = useState([]);
         const [screenStartTime, setScreenStartTime] = useState(Date.now());
+
+        // Copy-for-GPT UI state
+        const [copyStatus, setCopyStatus] = useState('idle'); // idle | copying | copied | failed
 
         useEffect(() => {
           // Replace this with URL/localStorage parsing later if needed
@@ -308,48 +310,112 @@
           logEvent('scenario_mc_answer', { scenario, step, optionId, correct: isCorrect, attempts: currentAttempts + 1 });
         };
 
-        const toggleCapacity = (capacityId) => {
-          setCapacityPairCheck(prev => {
-            const exists = prev.selectedPair.includes(capacityId);
-            let next = prev.selectedPair;
+        // -------- Copy-for-GPT helpers (PASTE HERE if you are inserting into an existing file) --------
+        const buildGptContextBlock = () => {
+          const unitNumber = UNIT_CONFIG?.unitNumber ?? context.unit ?? '—';
+          const mindwareName = UNIT_CONFIG?.mindwareName ?? '—';
+          const promise = UNIT_CONFIG?.promise ?? '—';
 
-            if (exists) {
-              next = prev.selectedPair.filter(c => c !== capacityId);
-            } else if (prev.selectedPair.length < 2) {
-              next = prev.selectedPair.concat([capacityId]);
-            }
+          const primaryId = context.unitPrimaryCap || (UNIT_CONFIG?.capacityPair?.[0] ?? null);
+          const secondaryId = context.unitSecondaryCap || (UNIT_CONFIG?.capacityPair?.[1] ?? null);
 
-            return { ...prev, selectedPair: next, feedback: null };
-          });
+          const primary = primaryId ? getCapMeta(primaryId) : null;
+          const secondary = secondaryId ? getCapMeta(secondaryId) : null;
+
+          const focusLabel = context.capLabel || '—';
+          const focusDef = context.capDef || '';
+
+          const doseLabel = dose || '—';
+
+          const tried = carryOver?.didRun || '—';
+          const outcome = carryOver?.outcome || '—';
+          const blocker = (carryOver?.blocker || '').trim();
+
+          const situation = (realRun.situation || '').trim();
+          const story = (realRun.story || '').trim();
+          const trap = realRun.trap || '—';
+          const reframe = (realRun.reframe || '').trim();
+          const microProof = (realRun.microProof || '').trim();
+          const firstStep = (realRun.firstStep || '').trim();
+          const ifThen = (realRun.ifThen || '').trim();
+
+          const cx = ratings.complexity ?? '—';
+          const val = ratings.value ?? '—';
+          const conf = ratings.confidence ?? '—';
+
+          const lines = [
+            "IQ Mindware – Copy for GPT",
+            "----------------------------------------",
+            `Unit: ${unitNumber}`,
+            `Mindware: ${mindwareName}`,
+            `Promise: ${promise}`,
+            "",
+            `Dose: ${doseLabel}`,
+            "",
+            `Capacity focus (from game): ${focusLabel}${focusDef ? " — " + focusDef : ""}`,
+            `Unit capacity pair: ${primary ? primary.label : "—"} + ${secondary ? secondary.label : "—"}`,
+            "",
+            `Carry-over: tried=${tried}; outcome=${outcome}${blocker ? "; blocker=" + blocker : ""}`,
+            "",
+            "Real run (if completed):",
+            `Situation: ${situation || "—"}`,
+            `Story: ${story || "—"}`,
+            `Trap: ${trap}`,
+            `Testable reframe: ${reframe || "—"}`,
+            `Micro-proof: ${microProof || "—"}`,
+            `First step (next 10 mins): ${firstStep || "—"}`,
+            `If–then cue: ${ifThen || "—"}`,
+            "",
+            `Ratings (optional): complexity=${cx}; value=${val}; confidence=${conf}`,
+            "----------------------------------------",
+            "GPT instruction: Run the unit operator on my real situation. Include 1 near-miss and a stop rule."
+          ];
+
+          return lines.join("\n");
         };
 
-        const checkCapacities = () => {
-          const correctPair = UNIT_1_CONFIG.capacityPair.map(normalizeCapId);
-          const selectedNormalized = capacityPairCheck.selectedPair.map(normalizeCapId);
+        const copyTextToClipboard = async (text) => {
+          // Modern API
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(text);
+              return true;
+            }
+          } catch (e) {}
 
-          const isCorrect =
-            selectedNormalized.length === 2 &&
-            selectedNormalized.every(cap => correctPair.includes(cap));
+          // Fallback
+          try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed';
+            ta.style.top = '-1000px';
+            ta.style.left = '-1000px';
+            document.body.appendChild(ta);
+            ta.select();
+            const ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            return !!ok;
+          } catch (e) {
+            return false;
+          }
+        };
 
-          const newAttempts = capacityPairCheck.attempts + 1;
+        const handleCopyForGpt = async () => {
+          const block = buildGptContextBlock();
+          setCopyStatus('copying');
+          logEvent('copy_for_gpt_clicked', { length: block.length });
 
-          setCapacityPairCheck(prev => ({
-            ...prev,
-            attempts: newAttempts,
-            correct: isCorrect,
-            feedback: isCorrect ? 'correct' : 'incorrect'
-          }));
+          const ok = await copyTextToClipboard(block);
 
-          logEvent('capacity_pair_check', {
-            selected: capacityPairCheck.selectedPair,
-            selectedNormalized,
-            expectedPair: correctPair,
-            correct: isCorrect,
-            attempts: newAttempts
-          });
-
-          if (isCorrect || newAttempts >= 2) {
-            setTimeout(() => goToScreen(5), isCorrect ? 1500 : 2500);
+          if (ok) {
+            setCopyStatus('copied');
+            logEvent('copy_for_gpt_success', {});
+            setTimeout(() => setCopyStatus('idle'), 2000);
+          } else {
+            setCopyStatus('failed');
+            logEvent('copy_for_gpt_failed', {});
+            setTimeout(() => setCopyStatus('idle'), 2500);
           }
         };
 
@@ -429,7 +495,7 @@
                     <div>
                       <p className="text-slate-600 mb-3">How did it go?</p>
                       <div className="space-y-2">
-                        {['better result', 'same result', 'worse result'].map((outcome) => (
+                        {['better', 'same', 'worse'].map((outcome) => (
                           <button
                             key={outcome}
                             onClick={() => setCarryOver(prev => ({ ...prev, outcome }))}
@@ -482,7 +548,7 @@
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-6 rounded-r-lg mb-6">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h3 className="text-xl font-semibold text-slate-800">Quick Pass</h3>
+                      <h3 className="text-xl font-semibold text-slate-800">Quick pass</h3>
                       <p className="text-sm text-slate-600">5–7 min</p>
                     </div>
                     <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-medium">quick</span>
@@ -533,7 +599,7 @@
             <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
               <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
                 <h2 className="text-2xl font-bold text-slate-800 mb-4">Capacity focus check</h2>
-                <p className="text-slate-600 mb-6">Quick check: what was your focus in the DNB capacity game? Then we'll use it during the mindware steps.</p>
+                <p className="text-slate-600 mb-6">Quick recall: what was your focus in the capacity game? Then we’ll use it during the mindware steps.</p>
 
                 <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-4 rounded-r-lg">
                   <p className="text-sm text-amber-800"><strong>Standalone mode:</strong> Using default focus for this unit.</p>
@@ -578,7 +644,7 @@
                       <div className="space-y-2">
                         <div className="flex items-start">
                           <Check className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                          <p className="text-slate-700">Use it to stay on the mindware steps instead of drifting into the story.</p>
+                          <p className="text-slate-700">Use it to stay on the steps instead of drifting into the story.</p>
                         </div>
                         <div className="flex items-start">
                           <Check className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
@@ -591,7 +657,7 @@
                       onClick={() => goToScreen(3)}
                       className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                     >
-                      Continue to Mindware Card
+                      Continue to Mindware card
                     </button>
                   </div>
                 )}
@@ -615,7 +681,7 @@
                   </div>
 
                   <div className="bg-white border-2 border-slate-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-slate-800 mb-3">The 5 Steps:</h3>
+                    <h3 className="font-semibold text-slate-800 mb-3">The 5 steps:</h3>
                     <ol className="space-y-2">
                       {UNIT_1_CONFIG.operatorSteps.map((step, idx) => (
                         <li key={idx} className="flex items-start">
@@ -627,7 +693,7 @@
                   </div>
 
                   <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
-                    <h3 className="font-semibold text-slate-800 mb-2">Common Traps:</h3>
+                    <h3 className="font-semibold text-slate-800 mb-2">Common traps:</h3>
                     <ul className="space-y-1">
                       {['Reassurance without a test', 'Vague positivity ("it’ll be fine")', 'Making the test too big', 'Avoiding the cue'].map((trap, idx) => (
                         <li key={idx} className="flex items-center">
@@ -640,7 +706,7 @@
 
                   <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
                     <h3 className="font-semibold text-slate-800 mb-2">Done right looks like:</h3>
-                    <p className="text-slate-700">A testable frame + one tiny proof-check you'll actually run.</p>
+                    <p className="text-slate-700">A testable frame + one tiny proof-check you’ll actually run.</p>
                   </div>
                 </div>
 
@@ -655,115 +721,109 @@
           );
         }
 
-        // Screen 4: Capacity → Mindware bridge (teach, not test)
-if (screen === 4) {
-  const unitPrimaryId = context.unitPrimaryCap || (UNIT_CONFIG?.capacityPair?.[0] ?? null);
-  const unitSecondaryId = context.unitSecondaryCap || (UNIT_CONFIG?.capacityPair?.[1] ?? null);
+        // ---------------- Screen 4: Capacity → Mindware bridge (teach, not test) ----------------
+        if (screen === 4) {
+          const primaryId = context.unitPrimaryCap || (UNIT_CONFIG?.capacityPair?.[0] ?? null);
+          const secondaryId = context.unitSecondaryCap || (UNIT_CONFIG?.capacityPair?.[1] ?? null);
 
-  const unitPair = [unitPrimaryId, unitSecondaryId].filter(Boolean).map(normalizeCapId);
+          const primary = primaryId ? getCapMeta(primaryId) : { id: '—', label: '—', definition: '' };
+          const secondary = secondaryId ? getCapMeta(secondaryId) : { id: '—', label: '—', definition: '' };
 
-  const getCapMeta = (capId) => {
-    const found = CAPACITY_TAXONOMY.find(c => normalizeCapId(c.id) === normalizeCapId(capId));
-    return found || { id: capId, label: capId, definition: '' };
-  };
+          const unitPair = [primaryId, secondaryId].filter(Boolean).map(normalizeCapId);
+          const focusId = normalizeCapId(context.cap);
+          const focusIsInPair = unitPair.includes(focusId);
 
-  const primary = getCapMeta(unitPrimaryId);
-  const secondary = getCapMeta(unitSecondaryId);
+          // Unit-specific “how it helps” map
+          const HOW_IT_HELPS = {
+            'check-recover': [
+              "Catch the moment you slip back into the negative story (rumination).",
+              "Rapidly return to the next operator step instead of restarting.",
+              "Keep momentum under pressure: error → correct → continue."
+            ],
+            'hold-update': [
+              "Hold the story, trap label, reframe, and proof idea in mind at once.",
+              "Update the reframe as new evidence arrives, keeping it testable.",
+              "Stop drifting into vague reassurance by maintaining the test criterion."
+            ]
+          };
 
-  const focusId = normalizeCapId(context.cap); // ground-truth focus for this session
-  const focusIsInPair = unitPair.includes(focusId);
+          const renderCapacityCard = (cap) => {
+            const bullets = HOW_IT_HELPS[normalizeCapId(cap.id)] || [
+              "Use this capacity to stay on the steps and avoid drifting into the story."
+            ];
 
-  // Unit-specific “how it helps” map (keep it simple; per unit you can swap these strings)
-  const HOW_IT_HELPS = {
-    'check-recover': [
-      "Catch the moment you slip back into the negative story (rumination).",
-      "Rapidly return to the next operator step instead of restarting.",
-      "Keep momentum under pressure: error → correct → continue."
-    ],
-    'hold-update': [
-      "Hold the story, trap label, reframe, and proof idea in mind at once.",
-      "Update the reframe as new evidence arrives, keeping it testable.",
-      "Stop drifting into vague reassurance by maintaining the test criterion."
-    ]
-  };
+            return (
+              <div className="bg-white border-2 border-slate-200 rounded-lg p-4">
+                <h3 className="font-semibold text-slate-800 mb-1">{cap.label}</h3>
+                {!!cap.definition && <p className="text-sm text-slate-600 mb-3">{cap.definition}</p>}
+                <p className="text-sm font-semibold text-slate-700 mb-2">How it helps this mindware:</p>
+                <ul className="space-y-2">
+                  {bullets.map((b, i) => (
+                    <li key={i} className="flex items-start">
+                      <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                      <span className="text-slate-700">{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          };
 
-  const renderCapacityCard = (cap) => {
-    const bullets = HOW_IT_HELPS[normalizeCapId(cap.id)] || [
-      "Use this capacity to stay on the steps and avoid drifting into the story."
-    ];
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+              <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+                <h2 className="text-2xl font-bold text-slate-800 mb-3">Capacity → Mindware bridge</h2>
 
-    return (
-      <div className="bg-white border-2 border-slate-200 rounded-lg p-4">
-        <h3 className="font-semibold text-slate-800 mb-1">{cap.label}</h3>
-        {!!cap.definition && <p className="text-sm text-slate-600 mb-3">{cap.definition}</p>}
-        <p className="text-sm font-semibold text-slate-700 mb-2">How it helps this mindware:</p>
-        <ul className="space-y-2">
-          {bullets.map((b, i) => (
-            <li key={i} className="flex items-start">
-              <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-              <span className="text-slate-700">{b}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  };
+                <p className="text-slate-600 mb-6">
+                  These are the two control skills we’ll keep online while you run the steps.
+                </p>
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
-      <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
-        <h2 className="text-2xl font-bold text-slate-800 mb-3">Capacity → Mindware bridge</h2>
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
+                  <p className="text-sm text-blue-900">
+                    <strong>Your focus from the game:</strong> {context.capLabel || '—'}
+                    {focusIsInPair ? (
+                      <span className="ml-2 text-blue-800">✓ This is one of today’s two capacities.</span>
+                    ) : (
+                      <span className="ml-2 text-blue-800">
+                        (Not in today’s pair, but still useful — keep it online anyway.)
+                      </span>
+                    )}
+                  </p>
+                </div>
 
-        <p className="text-slate-600 mb-6">
-          These are the two control skills we’ll keep online while you run the steps.
-        </p>
+                <div className="grid gap-4 mb-6">
+                  {renderCapacityCard(primary)}
+                  {renderCapacityCard(secondary)}
+                </div>
 
-        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
-          <p className="text-sm text-blue-900">
-            <strong>Your focus from the game:</strong> {context.capLabel || '—'}
-            {focusIsInPair ? (
-              <span className="ml-2 text-blue-800">✓ This is one of today’s two capacities.</span>
-            ) : (
-              <span className="ml-2 text-blue-800">
-                (Not in today’s pair, but still useful — keep it online anyway.)
-              </span>
-            )}
-          </p>
-        </div>
+                <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
+                  <p className="text-sm text-amber-900">
+                    <strong>Micro-cue:</strong> If you drift into the story, do a quick “check & recover” reset, name the step you’re on,
+                    then continue from that step.
+                  </p>
+                </div>
 
-        <div className="grid gap-4 mb-6">
-          {renderCapacityCard(primary)}
-          {renderCapacityCard(secondary)}
-        </div>
-
-        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
-          <p className="text-sm text-amber-900">
-            <strong>Micro-cue:</strong> If you drift into the story, do a quick “check & recover” reset, name the step you’re on,
-            then continue from that step.
-          </p>
-        </div>
-
-        <button
-          onClick={() => {
-            logEvent('capacity_bridge_continue', { unit: UNIT_CONFIG?.unitNumber, focusIsInPair });
-            goToScreen(5);
-          }}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-        >
-          Continue to practice
-        </button>
-      </div>
-    </div>
-  );
-}
+                <button
+                  onClick={() => {
+                    logEvent('capacity_bridge_continue', { unit: UNIT_CONFIG?.unitNumber, focusIsInPair });
+                    goToScreen(5);
+                  }}
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  Continue to practise
+                </button>
+              </div>
+            </div>
+          );
+        }
 
         // ---------------- Screen 5: Scenario A intro ----------------
         if (screen === 5) {
           return (
             <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
               <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Practice Scenario</h2>
-                <p className="text-slate-600 mb-6">Let's walk through a realistic situation using the 5 steps.</p>
+                <h2 className="text-2xl font-bold text-slate-800 mb-4">Practise scenario</h2>
+                <p className="text-slate-600 mb-6">Let’s walk through a realistic situation using the 5 steps.</p>
 
                 <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-500 p-6 rounded-r-lg mb-6">
                   <h3 className="text-lg font-semibold text-slate-800 mb-3">{UNIT_1_CONFIG.scenarioA.title}</h3>
@@ -780,7 +840,7 @@ if (screen === 4) {
                   onClick={() => goToScreen(6)}
                   className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                 >
-                  Start Practice
+                  Start practise
                 </button>
               </div>
             </div>
@@ -798,7 +858,7 @@ if (screen === 4) {
               <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
                 <div className="flex items-center mb-4">
                   <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold mr-3">1</span>
-                  <h2 className="text-2xl font-bold text-slate-800">Catch the Story</h2>
+                  <h2 className="text-2xl font-bold text-slate-800">Catch the story</h2>
                 </div>
 
                 <p className="text-slate-600 mb-6">First, identify the automatic negative story and label which trap it is.</p>
@@ -818,7 +878,7 @@ if (screen === 4) {
                 {isAnswered && isCorrect && (
                   <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4 rounded-r-lg">
                     <p className="text-green-800 font-medium">✓ Correct! This is {UNIT_1_CONFIG.scenarioA.correctTrap}.</p>
-                    <p className="text-sm text-green-700 mt-1">You're assuming you know what they're thinking without evidence.</p>
+                    <p className="text-sm text-green-700 mt-1">You’re assuming you know what they’re thinking without evidence.</p>
                   </div>
                 )}
 
@@ -869,7 +929,7 @@ if (screen === 4) {
               <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
                 <div className="flex items-center mb-4">
                   <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold mr-3">2</span>
-                  <h2 className="text-2xl font-bold text-slate-800">Generate a Testable Reframe</h2>
+                  <h2 className="text-2xl font-bold text-slate-800">Generate a testable reframe</h2>
                 </div>
 
                 <p className="text-slate-600 mb-6">Now create a neutral, testable alternative to the negative story.</p>
@@ -932,7 +992,7 @@ if (screen === 4) {
               <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
                 <div className="flex items-center mb-4">
                   <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold mr-3">3</span>
-                  <h2 className="text-2xl font-bold text-slate-800">Run a Micro-proof</h2>
+                  <h2 className="text-2xl font-bold text-slate-800">Run a micro-proof</h2>
                 </div>
 
                 <p className="text-slate-600 mb-6">Choose a small, concrete way to test your reframe.</p>
@@ -948,7 +1008,7 @@ if (screen === 4) {
                   </div>
                 )}
 
-                <p className="font-medium text-slate-800 mb-4">What's the best micro-proof?</p>
+                <p className="font-medium text-slate-800 mb-4">What’s the best micro-proof?</p>
 
                 <div className="space-y-3 mb-6">
                   {UNIT_1_CONFIG.scenarioA.microProofOptions.map((option) => (
@@ -995,10 +1055,10 @@ if (screen === 4) {
               <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
                 <div className="flex items-center mb-4">
                   <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold mr-3">4</span>
-                  <h2 className="text-2xl font-bold text-slate-800">Commit to Tiny First Step</h2>
+                  <h2 className="text-2xl font-bold text-slate-800">Commit to tiny first step</h2>
                 </div>
 
-                <p className="text-slate-600 mb-6">What's the smallest concrete action you can take right now?</p>
+                <p className="text-slate-600 mb-6">What’s the smallest concrete action you can take right now?</p>
 
                 {isAnswered && selectedOptionData && (
                   <div className={
@@ -1011,7 +1071,7 @@ if (screen === 4) {
                   </div>
                 )}
 
-                <p className="font-medium text-slate-800 mb-4">What's your first step?</p>
+                <p className="font-medium text-slate-800 mb-4">What’s your first step?</p>
 
                 <div className="space-y-3 mb-6">
                   {UNIT_1_CONFIG.scenarioA.firstStepOptions.map((option) => (
@@ -1037,7 +1097,7 @@ if (screen === 4) {
                     onClick={() => goToScreen(10)}
                     className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                   >
-                    Continue to Your Real Situation
+                    Continue to your real situation
                   </button>
                 )}
               </div>
@@ -1058,32 +1118,32 @@ if (screen === 4) {
           return (
             <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
               <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Your Real Situation</h2>
+                <h2 className="text-2xl font-bold text-slate-800 mb-4">Your real situation</h2>
                 <p className="text-slate-600 mb-6">Now apply the 5 steps to something happening in your life right now.</p>
 
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Describe a situation where you're having a negative automatic story:
+                      Describe a situation where you’re having a negative automatic story:
                     </label>
                     <textarea
                       value={realRun.situation}
                       onChange={(e) => setRealRun(prev => ({ ...prev, situation: e.target.value }))}
                       className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[96px]"
-                      placeholder="e.g., My colleague didn't respond to my message…"
+                      placeholder="e.g., My colleague didn’t respond to my message…"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      What's the automatic negative story?
+                      What’s the automatic negative story?
                     </label>
                     <input
                       type="text"
                       value={realRun.story}
                       onChange={(e) => setRealRun(prev => ({ ...prev, story: e.target.value }))}
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., They're upset with me…"
+                      placeholder="e.g., They’re upset with me…"
                     />
                   </div>
 
@@ -1109,7 +1169,7 @@ if (screen === 4) {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      What's a testable reframe?
+                      What’s a testable reframe?
                     </label>
                     <textarea
                       value={realRun.reframe}
@@ -1121,7 +1181,7 @@ if (screen === 4) {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      What's your micro-proof?
+                      What’s your micro-proof?
                     </label>
                     <textarea
                       value={realRun.microProof}
@@ -1133,14 +1193,14 @@ if (screen === 4) {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      What's one small action you can take to see?
+                      What’s your tiny first step?
                     </label>
                     <input
                       type="text"
                       value={realRun.firstStep}
                       onChange={(e) => setRealRun(prev => ({ ...prev, firstStep: e.target.value }))}
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="Something you can do in the next day or two…"
+                      placeholder="Something you can do in the next 10 minutes…"
                     />
                   </div>
                 </div>
@@ -1157,13 +1217,15 @@ if (screen === 4) {
           );
         }
 
-        // ---------------- Screen 11: Summary ----------------
+        // ---------------- Screen 11: Summary + Copy-for-GPT ----------------
         if (screen === 11) {
+          const gptBlock = buildGptContextBlock();
+
           return (
             <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
               <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Your Plan Summary</h2>
-                <p className="text-slate-600 mb-6">Here's what you committed to. Save this or screenshot it.</p>
+                <h2 className="text-2xl font-bold text-slate-800 mb-4">Your plan summary</h2>
+                <p className="text-slate-600 mb-6">Here’s what you committed to. Save this, screenshot it, or copy for GPT.</p>
 
                 <div className="space-y-4 mb-6">
                   <div className="bg-slate-50 rounded-lg p-4">
@@ -1172,17 +1234,17 @@ if (screen === 4) {
                   </div>
 
                   <div className="bg-slate-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-slate-600 mb-1">Automatic Story:</p>
+                    <p className="text-sm font-medium text-slate-600 mb-1">Automatic story:</p>
                     <p className="text-slate-800">{realRun.story}</p>
                   </div>
 
                   <div className="bg-slate-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-slate-600 mb-1">Trap Type:</p>
+                    <p className="text-sm font-medium text-slate-600 mb-1">Trap type:</p>
                     <p className="text-slate-800">{realRun.trap}</p>
                   </div>
 
                   <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-blue-900 mb-1">Testable Reframe:</p>
+                    <p className="text-sm font-medium text-blue-900 mb-1">Testable reframe:</p>
                     <p className="text-slate-800">{realRun.reframe}</p>
                   </div>
 
@@ -1192,7 +1254,7 @@ if (screen === 4) {
                   </div>
 
                   <div className="bg-purple-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-purple-900 mb-1">First Step:</p>
+                    <p className="text-sm font-medium text-purple-900 mb-1">First step:</p>
                     <p className="text-slate-800 font-semibold">{realRun.firstStep}</p>
                   </div>
                 </div>
@@ -1208,12 +1270,40 @@ if (screen === 4) {
                   />
                 </div>
 
+                {/* Copy-for-GPT block */}
+                <div className="border-2 border-slate-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                      <h3 className="font-semibold text-slate-800">Copy for GPT</h3>
+                      <p className="text-sm text-slate-600">Paste this into your published GPT to continue the coaching.</p>
+                    </div>
+
+                    <button
+                      onClick={handleCopyForGpt}
+                      className="px-3 py-2 rounded-lg border-2 border-slate-200 hover:border-slate-300 bg-white text-slate-700 font-semibold flex items-center"
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      {copyStatus === 'copied' ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+
+                  {copyStatus === 'failed' && (
+                    <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-r-lg mb-3">
+                      <p className="text-sm text-red-800">Copy failed in this browser. You can manually select and copy the text below.</p>
+                    </div>
+                  )}
+
+                  <pre className="text-xs bg-slate-50 p-3 rounded-lg overflow-auto whitespace-pre-wrap text-slate-700">
+{gptBlock}
+                  </pre>
+                </div>
+
                 <button
                   onClick={() => goToScreen(12)}
                   disabled={!realRun.ifThen.trim()}
                   className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
                 >
-                  Continue to Final Check
+                  Continue to final check
                 </button>
               </div>
             </div>
@@ -1227,7 +1317,7 @@ if (screen === 4) {
           return (
             <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
               <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Quick Reflection</h2>
+                <h2 className="text-2xl font-bold text-slate-800 mb-4">Quick reflection</h2>
                 <p className="text-slate-600 mb-6">Three quick ratings to help improve the training.</p>
 
                 <div className="space-y-6">
@@ -1255,7 +1345,7 @@ if (screen === 4) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-3">How valuable was this practice?</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-3">How valuable was this practise?</label>
                     <div className="flex gap-2">
                       {[1,2,3,4,5].map((val) => (
                         <button
@@ -1278,7 +1368,7 @@ if (screen === 4) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-3">How confident are you that you'll use this?</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-3">How confident are you that you’ll use this?</label>
                     <div className="flex gap-2">
                       {[1,2,3,4,5].map((val) => (
                         <button
@@ -1296,7 +1386,7 @@ if (screen === 4) {
                       ))}
                     </div>
                     <div className="flex justify-between mt-1 text-xs text-slate-500">
-                      <span>Won't use it</span><span>Definitely will</span>
+                      <span>Won’t use it</span><span>Definitely will</span>
                     </div>
                   </div>
                 </div>
@@ -1306,7 +1396,7 @@ if (screen === 4) {
                   disabled={!allRated}
                   className="w-full mt-8 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
                 >
-                  Complete Session
+                  Complete session
                 </button>
               </div>
             </div>
@@ -1322,9 +1412,9 @@ if (screen === 4) {
                   <Check className="w-10 h-10 text-white" />
                 </div>
 
-                <h2 className="text-3xl font-bold text-slate-800 mb-3">Session Complete!</h2>
+                <h2 className="text-3xl font-bold text-slate-800 mb-3">Session complete!</h2>
                 <p className="text-lg text-slate-600 mb-6">
-                  You've practised the Reframe + Micro-proof operator.
+                  You’ve practised the Reframe + Micro-proof operator.
                 </p>
 
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-6 rounded-r-lg mb-6 text-left">
@@ -1351,12 +1441,22 @@ if (screen === 4) {
                   </p>
                 </div>
 
-                <button
-                  onClick={() => setScreen(-1)}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  Start New Session
-                </button>
+                <div className="grid gap-3">
+                  <button
+                    onClick={() => setScreen(-1)}
+                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Start new session
+                  </button>
+
+                  <button
+                    onClick={handleCopyForGpt}
+                    className="w-full py-3 rounded-lg font-semibold border-2 border-slate-200 hover:border-slate-300 bg-white text-slate-700 flex items-center justify-center"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    {copyStatus === 'copied' ? 'Copied for GPT' : 'Copy for GPT'}
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -1396,3 +1496,6 @@ if (screen === 4) {
     </script>
   </body>
 </html>
+```
+
+**Key point:** this version has **no “Capacity pair check” screen at all**. Screen **4** is the **Capacity → Mindware bridge (teach, not test)**, and the app now includes a **Copy for GPT** block + button (Screen 11 and Screen 13).
