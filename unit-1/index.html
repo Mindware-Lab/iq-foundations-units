@@ -1217,251 +1217,247 @@
           );
         }
 
-        // ---------------- Screen 11: Summary + Copy-for-GPT ----------------
-        if (screen === 11) {
-          const gptBlock = buildGptContextBlock();
+// ---------------- Screen 11: Summary ----------------
+if (screen === 11) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+      <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4">Your plan summary</h2>
+        <p className="text-slate-600 mb-6">Here’s what you committed to. Save this or screenshot it.</p>
 
-          return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
-              <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Your plan summary</h2>
-                <p className="text-slate-600 mb-6">Here’s what you committed to. Save this, screenshot it, or copy for GPT.</p>
+        <div className="space-y-4 mb-6">
+          <div className="bg-slate-50 rounded-lg p-4">
+            <p className="text-sm font-medium text-slate-600 mb-1">Situation:</p>
+            <p className="text-slate-800">{realRun.situation}</p>
+          </div>
 
-                <div className="space-y-4 mb-6">
-                  <div className="bg-slate-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-slate-600 mb-1">Situation:</p>
-                    <p className="text-slate-800">{realRun.situation}</p>
-                  </div>
+          <div className="bg-slate-50 rounded-lg p-4">
+            <p className="text-sm font-medium text-slate-600 mb-1">Automatic story:</p>
+            <p className="text-slate-800">{realRun.story}</p>
+          </div>
 
-                  <div className="bg-slate-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-slate-600 mb-1">Automatic story:</p>
-                    <p className="text-slate-800">{realRun.story}</p>
-                  </div>
+          <div className="bg-slate-50 rounded-lg p-4">
+            <p className="text-sm font-medium text-slate-600 mb-1">Trap type:</p>
+            <p className="text-slate-800">{realRun.trap}</p>
+          </div>
 
-                  <div className="bg-slate-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-slate-600 mb-1">Trap type:</p>
-                    <p className="text-slate-800">{realRun.trap}</p>
-                  </div>
+          <div className="bg-blue-50 rounded-lg p-4">
+            <p className="text-sm font-medium text-blue-900 mb-1">Testable reframe:</p>
+            <p className="text-slate-800">{realRun.reframe}</p>
+          </div>
 
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-blue-900 mb-1">Testable reframe:</p>
-                    <p className="text-slate-800">{realRun.reframe}</p>
-                  </div>
+          <div className="bg-green-50 rounded-lg p-4">
+            <p className="text-sm font-medium text-green-900 mb-1">Micro-proof:</p>
+            <p className="text-slate-800">{realRun.microProof}</p>
+          </div>
 
-                  <div className="bg-green-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-green-900 mb-1">Micro-proof:</p>
-                    <p className="text-slate-800">{realRun.microProof}</p>
-                  </div>
+          <div className="bg-purple-50 rounded-lg p-4">
+            <p className="text-sm font-medium text-purple-900 mb-1">First step:</p>
+            <p className="text-slate-800 font-semibold">{realRun.firstStep}</p>
+          </div>
+        </div>
 
-                  <div className="bg-purple-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-purple-900 mb-1">First step:</p>
-                    <p className="text-slate-800 font-semibold">{realRun.firstStep}</p>
-                  </div>
-                </div>
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
+          <p className="text-amber-900 font-medium">When will you do your first step?</p>
+          <input
+            type="text"
+            value={realRun.ifThen}
+            onChange={(e) => setRealRun(prev => ({ ...prev, ifThen: e.target.value }))}
+            className="w-full mt-2 px-4 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            placeholder="e.g., As soon as I close this tab…"
+          />
+        </div>
 
-                <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
-                  <p className="text-amber-900 font-medium">When will you do your first step?</p>
-                  <input
-                    type="text"
-                    value={realRun.ifThen}
-                    onChange={(e) => setRealRun(prev => ({ ...prev, ifThen: e.target.value }))}
-                    className="w-full mt-2 px-4 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-                    placeholder="e.g., As soon as I close this tab…"
-                  />
-                </div>
+        <button
+          onClick={() => goToScreen(12)}
+          disabled={!realRun.ifThen.trim()}
+          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+        >
+          Continue to final check
+        </button>
+      </div>
+    </div>
+  );
+}
 
-                {/* Copy-for-GPT block */}
-                <div className="border-2 border-slate-200 rounded-lg p-4 mb-6">
-                  <div className="flex items-center justify-between gap-3 mb-3">
-                    <div>
-                      <h3 className="font-semibold text-slate-800">Copy for GPT</h3>
-                      <p className="text-sm text-slate-600">Paste this into your published GPT to continue the coaching.</p>
-                    </div>
+// ---------------- Screen 12: Ratings ----------------
+if (screen === 12) {
+  const allRated = ratings.complexity !== null && ratings.value !== null && ratings.confidence !== null;
 
-                    <button
-                      onClick={handleCopyForGpt}
-                      className="px-3 py-2 rounded-lg border-2 border-slate-200 hover:border-slate-300 bg-white text-slate-700 font-semibold flex items-center"
-                    >
-                      <Copy className="w-4 h-4 mr-2" />
-                      {copyStatus === 'copied' ? 'Copied' : 'Copy'}
-                    </button>
-                  </div>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+      <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4">Quick reflection</h2>
+        <p className="text-slate-600 mb-6">Three quick ratings to help improve the training.</p>
 
-                  {copyStatus === 'failed' && (
-                    <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-r-lg mb-3">
-                      <p className="text-sm text-red-800">Copy failed in this browser. You can manually select and copy the text below.</p>
-                    </div>
-                  )}
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-3">How complex was this session?</label>
+            <div className="flex gap-2">
+              {[1,2,3,4,5].map((val) => (
+                <button
+                  key={val}
+                  onClick={() => setRatings(prev => ({ ...prev, complexity: val }))}
+                  className={
+                    "flex-1 py-3 rounded-lg border-2 transition-all " +
+                    (ratings.complexity === val
+                      ? "border-blue-500 bg-blue-50 text-blue-700 font-semibold"
+                      : "border-slate-200 hover:border-slate-300 text-slate-600")
+                  }
+                >
+                  {val}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-between mt-1 text-xs text-slate-500">
+              <span>Too easy</span><span>Too hard</span>
+            </div>
+          </div>
 
-                  <pre className="text-xs bg-slate-50 p-3 rounded-lg overflow-auto whitespace-pre-wrap text-slate-700">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-3">How valuable was this practise?</label>
+            <div className="flex gap-2">
+              {[1,2,3,4,5].map((val) => (
+                <button
+                  key={val}
+                  onClick={() => setRatings(prev => ({ ...prev, value: val }))}
+                  className={
+                    "flex-1 py-3 rounded-lg border-2 transition-all " +
+                    (ratings.value === val
+                      ? "border-green-500 bg-green-50 text-green-700 font-semibold"
+                      : "border-slate-200 hover:border-slate-300 text-slate-600")
+                  }
+                >
+                  {val}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-between mt-1 text-xs text-slate-500">
+              <span>Not useful</span><span>Very useful</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-3">How confident are you that you’ll use this?</label>
+            <div className="flex gap-2">
+              {[1,2,3,4,5].map((val) => (
+                <button
+                  key={val}
+                  onClick={() => setRatings(prev => ({ ...prev, confidence: val }))}
+                  className={
+                    "flex-1 py-3 rounded-lg border-2 transition-all " +
+                    (ratings.confidence === val
+                      ? "border-purple-500 bg-purple-50 text-purple-700 font-semibold"
+                      : "border-slate-200 hover:border-slate-300 text-slate-600")
+                  }
+                >
+                  {val}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-between mt-1 text-xs text-slate-500">
+              <span>Won’t use it</span><span>Definitely will</span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => goToScreen(13)}
+          disabled={!allRated}
+          className="w-full mt-8 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+        >
+          Complete session
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Screen 13: Completion ----------------
+if (screen === 13) {
+  const gptBlock = buildGptContextBlock();
+  const GPT_URL = "https://chatgpt.com/g/g-695ec505a9948191b565d34298f88702-iq-mindware-far-transfer-coach-unit-1";
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8 flex items-center justify-center">
+      <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
+        <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Check className="w-10 h-10 text-white" />
+        </div>
+
+        <h2 className="text-3xl font-bold text-slate-800 mb-3">Session complete!</h2>
+        <p className="text-lg text-slate-600 mb-4">
+          You’ve practised the Reframe + Micro-proof operator.
+        </p>
+
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-6 rounded-r-lg mb-6 text-left">
+          <h3 className="font-semibold text-slate-800 mb-3">Remember:</h3>
+          <ul className="space-y-2 text-slate-700">
+            <li className="flex items-start">
+              <ChevronRight className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+              <span>Use this when negative stories create stress or avoidance</span>
+            </li>
+            <li className="flex items-start">
+              <ChevronRight className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+              <span>Keep {context.capLabel} online to stay on track</span>
+            </li>
+            <li className="flex items-start">
+              <ChevronRight className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+              <span>Your first step: {realRun.firstStep}</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* GPT explanation + buttons (only here, no redundancy on Screen 12) */}
+        <div className="border-2 border-slate-200 rounded-lg p-5 mb-6 text-left">
+          <h3 className="font-semibold text-slate-800 mb-1">Continue with the GPT coach</h3>
+          <p className="text-sm text-slate-600 mb-4">
+            The GPT coach helps you apply Unit 1 to your real situation, practise a few varied examples,
+            and tighten your reframe and micro-proof so it stays testable and small.
+          </p>
+
+          <div className="grid gap-3">
+            <button
+              onClick={handleCopyForGpt}
+              className="w-full py-3 rounded-lg font-semibold border-2 border-slate-200 hover:border-slate-300 bg-white text-slate-700 flex items-center justify-center"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              {copyStatus === 'copied' ? 'Copied for GPT' : 'Copy for GPT'}
+            </button>
+
+            <a
+              href={GPT_URL}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => logEvent('open_gpt', { url: GPT_URL })}
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center"
+            >
+              Open GPT coach
+              <ChevronRight className="w-5 h-5 ml-2" />
+            </a>
+
+            <pre className="text-xs bg-slate-50 p-3 rounded-lg overflow-auto whitespace-pre-wrap text-slate-700">
 {gptBlock}
-                  </pre>
-                </div>
+            </pre>
+          </div>
+        </div>
 
-                <button
-                  onClick={() => goToScreen(12)}
-                  disabled={!realRun.ifThen.trim()}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
-                >
-                  Continue to final check
-                </button>
-              </div>
-            </div>
-          );
-        }
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6 text-left">
+          <p className="text-sm text-amber-900">
+            <strong>Next time:</strong> Try using this in real-time when you notice a negative story starting.
+          </p>
+        </div>
 
-        // ---------------- Screen 12: Ratings ----------------
-        if (screen === 12) {
-          const allRated = ratings.complexity !== null && ratings.value !== null && ratings.confidence !== null;
-
-          return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
-              <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Quick reflection</h2>
-                <p className="text-slate-600 mb-6">Three quick ratings to help improve the training.</p>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-3">How complex was this session?</label>
-                    <div className="flex gap-2">
-                      {[1,2,3,4,5].map((val) => (
-                        <button
-                          key={val}
-                          onClick={() => setRatings(prev => ({ ...prev, complexity: val }))}
-                          className={
-                            "flex-1 py-3 rounded-lg border-2 transition-all " +
-                            (ratings.complexity === val
-                              ? "border-blue-500 bg-blue-50 text-blue-700 font-semibold"
-                              : "border-slate-200 hover:border-slate-300 text-slate-600")
-                          }
-                        >
-                          {val}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex justify-between mt-1 text-xs text-slate-500">
-                      <span>Too easy</span><span>Too hard</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-3">How valuable was this practise?</label>
-                    <div className="flex gap-2">
-                      {[1,2,3,4,5].map((val) => (
-                        <button
-                          key={val}
-                          onClick={() => setRatings(prev => ({ ...prev, value: val }))}
-                          className={
-                            "flex-1 py-3 rounded-lg border-2 transition-all " +
-                            (ratings.value === val
-                              ? "border-green-500 bg-green-50 text-green-700 font-semibold"
-                              : "border-slate-200 hover:border-slate-300 text-slate-600")
-                          }
-                        >
-                          {val}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex justify-between mt-1 text-xs text-slate-500">
-                      <span>Not useful</span><span>Very useful</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-3">How confident are you that you’ll use this?</label>
-                    <div className="flex gap-2">
-                      {[1,2,3,4,5].map((val) => (
-                        <button
-                          key={val}
-                          onClick={() => setRatings(prev => ({ ...prev, confidence: val }))}
-                          className={
-                            "flex-1 py-3 rounded-lg border-2 transition-all " +
-                            (ratings.confidence === val
-                              ? "border-purple-500 bg-purple-50 text-purple-700 font-semibold"
-                              : "border-slate-200 hover:border-slate-300 text-slate-600")
-                          }
-                        >
-                          {val}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex justify-between mt-1 text-xs text-slate-500">
-                      <span>Won’t use it</span><span>Definitely will</span>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => goToScreen(13)}
-                  disabled={!allRated}
-                  className="w-full mt-8 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
-                >
-                  Complete session
-                </button>
-              </div>
-            </div>
-          );
-        }
-
-        // ---------------- Screen 13: Completion ----------------
-        if (screen === 13) {
-          return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8 flex items-center justify-center">
-              <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
-                <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-10 h-10 text-white" />
-                </div>
-
-                <h2 className="text-3xl font-bold text-slate-800 mb-3">Session complete!</h2>
-                <p className="text-lg text-slate-600 mb-6">
-                  You’ve practised the Reframe + Micro-proof operator.
-                </p>
-
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-6 rounded-r-lg mb-6 text-left">
-                  <h3 className="font-semibold text-slate-800 mb-3">Remember:</h3>
-                  <ul className="space-y-2 text-slate-700">
-                    <li className="flex items-start">
-                      <ChevronRight className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-                      <span>Use this when negative stories create stress or avoidance</span>
-                    </li>
-                    <li className="flex items-start">
-                      <ChevronRight className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-                      <span>Keep {context.capLabel} online to stay on track</span>
-                    </li>
-                    <li className="flex items-start">
-                      <ChevronRight className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-                      <span>Your first step: {realRun.firstStep}</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6 text-left">
-                  <p className="text-sm text-amber-900">
-                    <strong>Next time:</strong> Try using this in real-time when you notice a negative story starting.
-                  </p>
-                </div>
-
-                <div className="grid gap-3">
-                  <button
-                    onClick={() => setScreen(-1)}
-                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                  >
-                    Start new session
-                  </button>
-
-                  <button
-                    onClick={handleCopyForGpt}
-                    className="w-full py-3 rounded-lg font-semibold border-2 border-slate-200 hover:border-slate-300 bg-white text-slate-700 flex items-center justify-center"
-                  >
-                    <Copy className="w-4 h-4 mr-2" />
-                    {copyStatus === 'copied' ? 'Copied for GPT' : 'Copy for GPT'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        }
-
+        <button
+          onClick={() => setScreen(-1)}
+          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+        >
+          Start new session
+        </button>
+      </div>
+    </div>
+  );
+}
         return null;
       };
 
