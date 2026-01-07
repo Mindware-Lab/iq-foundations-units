@@ -533,7 +533,7 @@
             <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
               <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
                 <h2 className="text-2xl font-bold text-slate-800 mb-4">Capacity focus check</h2>
-                <p className="text-slate-600 mb-6">Quick check: what was your focus in the game? Then we'll use it during the mindware steps.</p>
+                <p className="text-slate-600 mb-6">Quick check: what was your focus in the DNB capacity game? Then we'll use it during the mindware steps.</p>
 
                 <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-4 rounded-r-lg">
                   <p className="text-sm text-amber-800"><strong>Standalone mode:</strong> Using default focus for this unit.</p>
@@ -655,69 +655,107 @@
           );
         }
 
-        // ---------------- Screen 4: Capacity Pair Check ----------------
-        if (screen === 4) {
-          return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
-              <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Capacity pair check</h2>
-                <p className="text-slate-600 mb-6">These are the two control skills we'll keep online while you run the steps.</p>
+        // Screen 4: Capacity → Mindware bridge (teach, not test)
+if (screen === 4) {
+  const unitPrimaryId = context.unitPrimaryCap || (UNIT_CONFIG?.capacityPair?.[0] ?? null);
+  const unitSecondaryId = context.unitSecondaryCap || (UNIT_CONFIG?.capacityPair?.[1] ?? null);
 
-                {capacityPairCheck.feedback === 'incorrect' && (
-                  <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
-                    <p className="text-red-800 font-medium">Not quite. Pick the unit's capacity pair.</p>
-                    <p className="text-sm text-red-700 mt-1">Think about what's needed to catch negative stories and test reframes.</p>
-                  </div>
-                )}
+  const unitPair = [unitPrimaryId, unitSecondaryId].filter(Boolean).map(normalizeCapId);
 
-                {capacityPairCheck.feedback === 'correct' && (
-                  <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-r-lg animate-pulse">
-                    <p className="text-green-800 font-medium">✓ Correct. Keep these two capacities online during the practice.</p>
-                  </div>
-                )}
+  const getCapMeta = (capId) => {
+    const found = CAPACITY_TAXONOMY.find(c => normalizeCapId(c.id) === normalizeCapId(capId));
+    return found || { id: capId, label: capId, definition: '' };
+  };
 
-                <p className="font-medium text-slate-800 mb-4">Which TWO capacities does this unit train?</p>
+  const primary = getCapMeta(unitPrimaryId);
+  const secondary = getCapMeta(unitSecondaryId);
 
-                <div className="space-y-2 mb-6">
-                  {CAPACITY_TAXONOMY.map((capacity) => (
-                    <button
-                      key={capacity.id}
-                      onClick={() => toggleCapacity(capacity.id)}
-                      disabled={capacityPairCheck.feedback === 'correct'}
-                      className={
-                        "w-full p-4 rounded-lg border-2 transition-all text-left " +
-                        (capacityPairCheck.selectedPair.includes(capacity.id) ? "border-blue-500 bg-blue-50" : "border-slate-200 hover:border-slate-300") +
-                        (capacityPairCheck.feedback === 'correct' ? " opacity-50" : "")
-                      }
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="font-semibold text-slate-800 mb-1">{capacity.label}</p>
-                          <p className="text-sm text-slate-600">{capacity.definition}</p>
-                        </div>
-                        {capacityPairCheck.selectedPair.includes(capacity.id) && (
-                          <Check className="w-5 h-5 text-blue-600 ml-3 flex-shrink-0" />
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+  const focusId = normalizeCapId(context.cap); // ground-truth focus for this session
+  const focusIsInPair = unitPair.includes(focusId);
 
-                <div className="text-sm text-slate-500 mb-4">
-                  Selected: {capacityPairCheck.selectedPair.length} of 2
-                </div>
+  // Unit-specific “how it helps” map (keep it simple; per unit you can swap these strings)
+  const HOW_IT_HELPS = {
+    'check-recover': [
+      "Catch the moment you slip back into the negative story (rumination).",
+      "Rapidly return to the next operator step instead of restarting.",
+      "Keep momentum under pressure: error → correct → continue."
+    ],
+    'hold-update': [
+      "Hold the story, trap label, reframe, and proof idea in mind at once.",
+      "Update the reframe as new evidence arrives, keeping it testable.",
+      "Stop drifting into vague reassurance by maintaining the test criterion."
+    ]
+  };
 
-                <button
-                  onClick={checkCapacities}
-                  disabled={capacityPairCheck.selectedPair.length !== 2 || capacityPairCheck.feedback === 'correct'}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
-                >
-                  {capacityPairCheck.feedback === 'correct' ? 'Continuing…' : 'Check My Selection'}
-                </button>
-              </div>
-            </div>
-          );
-        }
+  const renderCapacityCard = (cap) => {
+    const bullets = HOW_IT_HELPS[normalizeCapId(cap.id)] || [
+      "Use this capacity to stay on the steps and avoid drifting into the story."
+    ];
+
+    return (
+      <div className="bg-white border-2 border-slate-200 rounded-lg p-4">
+        <h3 className="font-semibold text-slate-800 mb-1">{cap.label}</h3>
+        {!!cap.definition && <p className="text-sm text-slate-600 mb-3">{cap.definition}</p>}
+        <p className="text-sm font-semibold text-slate-700 mb-2">How it helps this mindware:</p>
+        <ul className="space-y-2">
+          {bullets.map((b, i) => (
+            <li key={i} className="flex items-start">
+              <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+              <span className="text-slate-700">{b}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+      <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        <h2 className="text-2xl font-bold text-slate-800 mb-3">Capacity → Mindware bridge</h2>
+
+        <p className="text-slate-600 mb-6">
+          These are the two control skills we’ll keep online while you run the steps.
+        </p>
+
+        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
+          <p className="text-sm text-blue-900">
+            <strong>Your focus from the game:</strong> {context.capLabel || '—'}
+            {focusIsInPair ? (
+              <span className="ml-2 text-blue-800">✓ This is one of today’s two capacities.</span>
+            ) : (
+              <span className="ml-2 text-blue-800">
+                (Not in today’s pair, but still useful — keep it online anyway.)
+              </span>
+            )}
+          </p>
+        </div>
+
+        <div className="grid gap-4 mb-6">
+          {renderCapacityCard(primary)}
+          {renderCapacityCard(secondary)}
+        </div>
+
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
+          <p className="text-sm text-amber-900">
+            <strong>Micro-cue:</strong> If you drift into the story, do a quick “check & recover” reset, name the step you’re on,
+            then continue from that step.
+          </p>
+        </div>
+
+        <button
+          onClick={() => {
+            logEvent('capacity_bridge_continue', { unit: UNIT_CONFIG?.unitNumber, focusIsInPair });
+            goToScreen(5);
+          }}
+          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+        >
+          Continue to practice
+        </button>
+      </div>
+    </div>
+  );
+}
 
         // ---------------- Screen 5: Scenario A intro ----------------
         if (screen === 5) {
