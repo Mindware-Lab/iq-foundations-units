@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mindware Unit 1: Reframe + Micro-proof</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const { ChevronRight, Copy, Check, AlertCircle, X } = lucide;
+
+    // Capacity Taxonomy (shared across all units)
+    const CAPACITY_TAXONOMY = [
+      { id: 'check-recover', label: 'Check & recover', definition: 'Notice errors and self-correct in real-time' },
+      { id: 'hold-update', label: 'Hold & update', definition: 'Maintain multiple items and update them flexibly' },
+      { id: 'resist-interference', label: 'Resist interference', definition: 'Stay focused despite distractions' },
+      { id: 'task-switch', label: 'Task switch', definition: 'Move between rules without carrying over' },
+      { id: 'inhibit-prepotent', label: 'Inhibit prepotent response', definition: 'Suppress automatic reactions' },
+      { id: 'maintain-set', label: 'Maintain set', definition: 'Keep the active goal stable across time' },
+      { id: 'sequence-control', label: 'Sequence control', definition: 'Execute multi-step plans in order' },
+      { id: 'dual-task', label: 'Dual-task coordination', definition: 'Balance two simultaneous demands' }
+    ];
+
+    // Unit 1 Configuration
+    const UNIT_1_CONFIG = {
+      unitNumber: 1,
+      mindwareName: "Reframe + Micro-proof",
+      promise: "Turn the automatic story into a testable reframe, then run a tiny micro-proof.",
+      operatorSteps: [
+        "Catch the automatic negative story",
+        "Label which trap it is",
+        "Generate a testable reframe",
+        "Run a micro-proof",
+        "Commit to tiny first step"
+      ],
+      capacityPair: ['check-recover', 'hold-update'],
+      traps: [
+        "Mind reading",
+        "Catastrophizing",
+        "Overgeneralizing",
+        "Filtering (ignoring positives)"
+      ],
+      scenarioA: {
+        id: "manager-ambiguity",
+        title: "Manager hasn't replied",
+        story: "You sent an important update to your manager 2 days ago. They usually reply within hours. Still nothing. You start thinking: 'They must be unhappy with my work. Maybe they're avoiding me. This is bad.'",
+        automaticStory: "They're avoiding me because my work was terrible",
+        correctTrap: "Mind reading",
+        reframeOptions: [
+          { 
+            id: 'testable', 
+            text: "There could be many reasons - check their calendar or send a light follow-up to test this",
+            correct: true,
+            feedback: "✓ Good. Testable frame with a concrete way to check it."
+          },
+          { 
+            id: 'reassurance', 
+            text: "They're probably just busy, I'm sure it's fine and they'll reply eventually",
+            correct: false,
+            feedback: "✗ Near-miss: Reassurance, not a testable frame. No way to check if it's true."
+          },
+          { 
+            id: 'vague-positive', 
+            text: "I should think positively and trust that everything will work out",
+            correct: false,
+            feedback: "✗ Near-miss: Vague positivity without a test criterion."
+          },
+          { 
+            id: 'catastrophize', 
+            text: "They definitely hate my work and I should start looking for a new job immediately",
+            correct: false,
+            feedback: "✗ Distractor: This is catastrophizing, not a neutral testable frame."
+          }
+        ],
+        microProofOptions: [
+          { 
+            id: 'check-calendar', 
+            text: "Check their calendar to see if they're in back-to-back meetings, or send a quick 'just checking in' message",
+            correct: true,
+            feedback: "✓ Concrete micro-proof. Small, testable, you'll actually do it."
+          },
+          { 
+            id: 'wait-week', 
+            text: "Wait a full week to see if they reply, then reassess the situation",
+            correct: false,
+            feedback: "✗ Near-miss: Too big. Not a 'micro' proof - you're still stuck in uncertainty."
+          },
+          { 
+            id: 'ask-colleague', 
+            text: "Ask every colleague if they think the manager is avoiding me and gather consensus",
+            correct: false,
+            feedback: "✗ Near-miss: Too elaborate. This turns into a whole research project, not a micro-proof."
+          },
+          { 
+            id: 'ruminate', 
+            text: "Review my work thoroughly to find all the mistakes that upset them",
+            correct: false,
+            feedback: "✗ Distractor: This isn't testing the reframe, it's diving deeper into the negative story."
+          }
+        ],
+        firstStepOptions: [
+          { 
+            id: 'check-now', 
+            text: "Open their calendar right now (30 seconds)",
+            correct: true,
+            feedback: "✓ Tiny, concrete, actually doable in the next 10 minutes."
+          },
+          { 
+            id: 'draft-email', 
+            text: "Draft a detailed explanation email of all my work decisions to send later",
+            correct: false,
+            feedback: "✗ Near-miss: Too big for a 'first step'. You're trying to solve everything at once."
+          },
+          { 
+            id: 'schedule-meeting', 
+            text: "Schedule a formal 1-on-1 meeting to discuss my performance",
+            correct: false,
+            feedback: "✗ Near-miss: Way too big. You're jumping to a major action without testing first."
+          },
+          { 
+            id: 'think-more', 
+            text: "Spend time thinking carefully about what I might have done wrong",
+            correct: false,
+            feedback: "✗ Distractor: Not an action, just more rumination. Not a step."
+          }
+        ]
+      }
+    };
+
+    // Use a standard name across units
+    const UNIT_CONFIG = UNIT_1_CONFIG;
+
+    // Trident icon from external asset
+    const TridentIcon = ({ className = "w-20 h-20" }) => (
+      <img
+        src="https://mindware-lab.github.io/iq-foundations-units/unit-1/assets/trident-logo.svg"
+        alt="Trident Logo"
+        className={className}
+      />
+    );
+
+    const MindwareUnit1 = () => {
+      const normalizeCapId = (id) => {
+        if (!id) return '';
+        return id.toLowerCase().replace(/_/g, '-');
+      };
+
+      const [context, setContext] = useState({
+        unit: null, plan: null, game: null, speed: null, interference: null, hand: null,
+        zone: null, cap: null, capLabel: null, capDef: null, capMatch: null,
+        unitPrimaryCap: null, unitSecondaryCap: null, obs: null, move: null, return: null
+      });
+      
+      const [screen, setScreen] = useState(-1);
+      const [carryOver, setCarryOver] = useState({ didRun: null, outcome: null, blocker: null });
+      const [dose, setDose] = useState(null);
+      
+      const [capacityRecall, setCapacityRecall] = useState({
+        answer: null,
+        correct: null,
+        attempts: 0,
+        loggedCapLabel: null,
+        loggedCapDef: null
+      });
+      const [showBridge, setShowBridge] = useState(false);
+      
+      const [capacityPairCheck, setCapacityPairCheck] = useState({
+        selectedPair: [],
+        attempts: 0,
+        correct: null,
+        feedback: null
+      });
+      
+      const [reasoningSet, setReasoningSet] = useState({
+        thinkingStyle: null,
+        thinkingStyleCorrect: false,
+        thinkingStyleAttempts: 0,
+        exploreDose: null,
+        exploreDoseCorrect: false,
+        exploreDoseAttempts: 0,
+        trapPrime: null,
+        commitLine: ''
+      });
+      
+      const [scenarioAnswers, setScenarioAnswers] = useState({
+        A: { 
+          story: '', 
+          trap: null, 
+          trapAttempts: 0,
+          reframe: null,
+          reframeAttempts: 0,
+          microProof: null,
+          microProofAttempts: 0,
+          firstStep: null,
+          firstStepAttempts: 0,
+          storyRecognized: false 
+        }
+      });
+      
+      const [realRun, setRealRun] = useState({
+        situation: '', story: '', trap: null, reframe: '', microProof: '', firstStep: '', ifThen: '', easeTweaks: []
+      });
+      
+      const [ratings, setRatings] = useState({
+        complexity: null,
+        value: null,
+        certainty: null,
+        evidenceIncentive: null,
+        confidence: null
+      });
+      
+      const [endLog, setEndLog] = useState({
+        clicked: null,
+        changeType: null,
+        exploreUsed: null,
+        note: ''
+      });
+      
+      const [telemetry, setTelemetry] = useState([]);
+      const [screenStartTime, setScreenStartTime] = useState(Date.now());
+
+      useEffect(() => {
+        let loadedContext = {
+          unit: '1', plan: 'standalone', game: '3-back', speed: '1', interference: '0', hand: '1',
+          zone: 'standalone', cap: 'check-recover', capLabel: 'Check & recover',
+          capDef: 'Notice errors and self-correct in real-time', capMatch: 'primary',
+          unitPrimaryCap: 'check-recover', unitSecondaryCap: 'hold-update',
+          obs: '', move: '', return: null
+        };
+        
+        setDose('quick');
+        setContext(loadedContext);
+      }, []);
+
+      const logEvent = (eventType, data = {}) => {
+        setTelemetry(prev => [...prev, { timestamp: Date.now(), screen, eventType, ...data }]);
+      };
+
+      const goToScreen = (nextScreen) => {
+        const duration = Date.now() - screenStartTime;
+        logEvent('screen_exit', { duration, fromScreen: screen, toScreen: nextScreen });
+        setScreen(nextScreen);
+        setScreenStartTime(Date.now());
+      };
+
+      const handleScenarioMCAnswer = (scenario, step, optionId, isCorrect) => {
+        const attemptField = `${step}Attempts`;
+        const currentAttempts = scenarioAnswers[scenario][attemptField] || 0;
+        
+        setScenarioAnswers(prev => ({
+          ...prev,
+          [scenario]: {
+            ...prev[scenario],
+            [step]: optionId,
+            [`${step}Correct`]: isCorrect,
+            [attemptField]: currentAttempts + 1
+          }
+        }));
+        
+        logEvent('scenario_mc_answer', { scenario, step, optionId, correct: isCorrect, attempts: currentAttempts + 1 });
+      };
+
+      const toggleCapacity = (capacityId) => {
+        setCapacityPairCheck(prev => {
+          const newSelectedPair = prev.selectedPair.includes(capacityId)
+            ? prev.selectedPair.filter(c => c !== capacityId)
+            : prev.selectedPair.length < 2
+              ? [...prev.selectedPair, capacityId]
+              : prev.selectedPair;
+          
+          return { ...prev, selectedPair: newSelectedPair, feedback: null };
+        });
+      };
+
+      const checkCapacities = () => {
+        const correctPair = UNIT_1_CONFIG.capacityPair.map(normalizeCapId);
+        const selectedNormalized = capacityPairCheck.selectedPair.map(normalizeCapId);
+        const isCorrect = selectedNormalized.length === 2 && 
+          selectedNormalized.every(cap => correctPair.includes(cap));
+        
+        const newAttempts = capacityPairCheck.attempts + 1;
+        
+        setCapacityPairCheck(prev => ({
+          ...prev,
+          attempts: newAttempts,
+          correct: isCorrect,
+          feedback: isCorrect ? 'correct' : 'incorrect'
+        }));
+        
+        logEvent('capacity_pair_check', { 
+          selected: capacityPairCheck.selectedPair,
+          selectedNormalized,
+          expectedPair: correctPair, 
+          correct: isCorrect, 
+          attempts: newAttempts 
+        });
+        
+        if (isCorrect || newAttempts >= 2) {
+          setTimeout(() => goToScreen(5), isCorrect ? 1500 : 2500);
+        }
+      };
+
+      // Screen -1: Splash (first screen)
+      if (screen === -1) {
+        const unitTitle = `Unit ${UNIT_CONFIG?.unitNumber ?? ''}: ${UNIT_CONFIG?.mindwareName ?? ''}`;
+        const promise = UNIT_CONFIG?.promise ?? "A short, unit-defined promise goes here.";
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8 flex items-center justify-center">
+            <div className="w-full max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
+              <div className="flex justify-center mb-4 text-slate-800">
+                <TridentIcon className="w-20 h-20" />
+              </div>
+
+              <h1 className="text-2xl md:text-3xl font-extrabold text-slate-800 mb-2">
+                {unitTitle}
+              </h1>
+
+              <p className="text-slate-600 mb-8">
+                {promise}
+              </p>
+
+              <button
+                onClick={() => {
+                  logEvent('splash_continue', { unit: UNIT_CONFIG?.unitNumber });
+                  goToScreen(0);
+                }}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center"
+              >
+                <span className="mr-2">Start</span>
+                <ChevronRight className="w-5 h-5" />
+              </button>
+
+              <div className="mt-6 text-xs text-slate-500">
+                IQMindware.com
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Screen 0: Carry-over Check
+      if (screen === 0) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+              <h1 className="text-2xl font-bold text-slate-800 mb-2">Welcome to Unit 1</h1>
+              <p className="text-slate-600 mb-6">Reframe + Micro-proof</p>
+              
+              <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-4 rounded-r-lg">
+                <p className="text-sm text-amber-800">Running in standalone mode. Quick pass will be used.</p>
+              </div>
+              
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">Quick check-in</h2>
+              <p className="text-slate-600 mb-4">Did you try the Unit 1 operator since last time?</p>
+              
+              <div className="space-y-3 mb-6">
+                {['yes', 'a bit', 'no'].map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setCarryOver(prev => ({ ...prev, didRun: option }))}
+                    className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                      carryOver.didRun === option ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className="font-medium text-slate-800 capitalize">{option}</span>
+                  </button>
+                ))}
+              </div>
+              
+              {carryOver.didRun && carryOver.didRun !== 'no' && (
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <p className="text-slate-600 mb-3">How did it go?</p>
+                    <div className="space-y-2">
+                      {['better', 'same', 'worse'].map((outcome) => (
+                        <button key={outcome} onClick={() => setCarryOver(prev => ({ ...prev, outcome }))}
+                          className={`w-full p-3 rounded-lg border-2 transition-all ${carryOver.outcome === outcome ? 'border-green-500 bg-green-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                          <span className="capitalize">{outcome}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {(carryOver.outcome === 'same' || carryOver.outcome === 'worse') && (
+                    <div>
+                      <label className="block text-slate-600 mb-2">What got in the way?</label>
+                      <input type="text" value={carryOver.blocker || ''} onChange={(e) => setCarryOver(prev => ({ ...prev, blocker: e.target.value }))}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., forgot to use it, situation was too intense..." />
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <button onClick={() => goToScreen(1)} disabled={!carryOver.didRun}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors">
+                Continue
+              </button>
+            </div>
+          </div>
+        );
+      }
+      
+      // Screen 1: Dose Display
+      if (screen === 1) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">Today's dose</h2>
+              <p className="text-slate-600 mb-6">Automatically determined from your current state</p>
+              
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-6 rounded-r-lg mb-6">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-800">Quick Pass</h3>
+                    <p className="text-sm text-slate-600">5-7 min</p>
+                  </div>
+                  <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-medium">quick</span>
+                </div>
+                <p className="text-slate-700 mb-3">One scenario + your real situation</p>
+                <div className="bg-white bg-opacity-50 rounded p-3 mt-3">
+                  <p className="text-sm text-slate-600">
+                    <span className="font-medium">Why this dose:</span> Standalone mode always uses Quick pass
+                  </p>
+                </div>
+              </div>
+              
+              <button onClick={() => goToScreen(2)} 
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                Continue
+              </button>
+            </div>
+          </div>
+        );
+      }
+      
+      // Screen 2: Capacity Focus Check
+      if (screen === 2) {
+        const handleFocusCheck = (capacityId) => {
+          const isCorrect = normalizeCapId(capacityId) === normalizeCapId(context.cap);
+          const newAttempts = capacityRecall.attempts + 1;
+          
+          setCapacityRecall({
+            answer: capacityId,
+            correct: isCorrect,
+            attempts: newAttempts,
+            loggedCapLabel: context.capLabel,
+            loggedCapDef: context.capDef
+          });
+          
+          logEvent('focus_recall', { 
+            answer: capacityId,
+            correct: isCorrect, 
+            attempts: newAttempts
+          });
+          setTimeout(() => setShowBridge(true), 800);
+        };
+        
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">Capacity focus check</h2>
+              <p className="text-slate-600 mb-6">Quick check: what was your focus in the game? Then we'll use it during the mindware steps.</p>
+              
+              <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-4 rounded-r-lg">
+                <p className="text-sm text-amber-800"><strong>Standalone mode:</strong> Using default focus for this unit.</p>
+              </div>
+              
+              {!capacityRecall.answer && (
+                <>
+                  <p className="font-medium text-slate-800 mb-4">Which capacity was your focus?</p>
+                  <div className="space-y-2 mb-4">
+                    {CAPACITY_TAXONOMY.map((capacity) => (
+                      <button key={capacity.id} onClick={() => handleFocusCheck(capacity.id)}
+                        className="w-full p-4 rounded-lg border-2 border-slate-200 hover:border-blue-300 transition-all text-left">
+                        <p className="font-semibold text-slate-800 mb-1">{capacity.label}</p>
+                        <p className="text-sm text-slate-600">{capacity.definition}</p>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              
+              {capacityRecall.answer && !showBridge && (
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg animate-pulse">
+                  <p className="text-blue-800">
+                    {capacityRecall.correct
+                      ? '✓ Yes. Keep that capacity online.'
+                      : `Focus is: ${capacityRecall.loggedCapLabel}. Keep that online.`}
+                  </p>
+                </div>
+              )}
+              
+              {showBridge && (
+                <div className="space-y-6">
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 p-6 rounded-r-lg">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                      Keep {capacityRecall.loggedCapLabel} online
+                    </h3>
+                    <p className="text-slate-700 mb-4">{capacityRecall.loggedCapDef}</p>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-start">
+                        <Check className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                        <p className="text-slate-700">Use it to stay on the mindware steps instead of drifting into the story.</p>
+                      </div>
+                      <div className="flex items-start">
+                        <Check className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                        <p className="text-slate-700">Use it to notice slips fast and return to the next step.</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <button onClick={() => goToScreen(3)} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                    Continue to Mindware Card
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+      
+      // Screen 3: Mindware Card
+      if (screen === 3) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">Unit 1: Reframe + Micro-proof</h2>
+              <p className="text-slate-600 mb-6">This is the portable version. Same mindware, different situations.</p>
+              
+              <div className="space-y-4 mb-6">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                  <h3 className="font-semibold text-slate-800 mb-2">Use when:</h3>
+                  <p className="text-slate-700">An automatic negative story drives stress, avoidance, or rumination.</p>
+                </div>
+                
+                <div className="bg-white border-2 border-slate-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-slate-800 mb-3">The 5 Steps:</h3>
+                  <ol className="space-y-2">
+                    {UNIT_1_CONFIG.operatorSteps.map((step, idx) => (
+                      <li key={idx} className="flex items-start">
+                        <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold mr-3 flex-shrink-0">{idx + 1}</span>
+                        <span className="text-slate-700 mt-0.5">{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+                
+                <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                  <h3 className="font-semibold text-slate-800 mb-2">Common Traps:</h3>
+                  <ul className="space-y-1">
+                    {['Reassurance without a test', 'Vague positivity ("it\'ll be fine")', 'Making the test too big', 'Avoiding the cue'].map((trap, idx) => (
+                      <li key={idx} className="flex items-center">
+                        <AlertCircle className="w-4 h-4 text-amber-600 mr-2" />
+                        <span className="text-slate-700">{trap}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                  <h3 className="font-semibold text-slate-800 mb-2">Done right looks like:</h3>
+                  <p className="text-slate-700">A testable frame + one tiny proof-check you'll actually run.</p>
+                </div>
+              </div>
+              
+              <button onClick={() => goToScreen(4)} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                Continue
+              </button>
+            </div>
+          </div>
+        );
+      }
+      
+      // Screen 4: Capacity Pair Check (GATED)
+      if (screen === 4) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">Capacity pair check</h2>
+              <p className="text-slate-600 mb-6">These are the two control skills we'll keep online while you run the steps.</p>
+              
+              {capacityPairCheck.feedback === 'incorrect' && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
+                  <p className="text-red-800 font-medium">Not quite. Pick the unit's capacity pair.</p>
+                  <p className="text-sm text-red-700 mt-1">Think about what's needed to catch negative stories and test reframes.</p>
+                </div>
+              )}
+              
+              {capacityPairCheck.feedback === 'correct' && (
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-r-lg animate-pulse">
+                  <p className="text-green-800 font-medium">✓ Correct. Keep these two capacities online during the practice.</p>
+                </div>
+              )}
+              
+              <p className="font-medium text-slate-800 mb-4">Which TWO capacities does this unit train?</p>
+              
+              <div className="space-y-2 mb-6">
+                {CAPACITY_TAXONOMY.map((capacity) => (
+                  <button key={capacity.id} onClick={() => toggleCapacity(capacity.id)} disabled={capacityPairCheck.feedback === 'correct'}
+                    className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                      capacityPairCheck.selectedPair.includes(capacity.id) ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
+                    } ${capacityPairCheck.feedback === 'correct' ? 'opacity-50' : ''}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold text-slate-800 mb-1">{capacity.label}</p>
+                        <p className="text-sm text-slate-600">{capacity.definition}</p>
+                      </div>
+                      {capacityPairCheck.selectedPair.includes(capacity.id) && <Check className="w-5 h-5 text-blue-600 ml-3 flex-shrink-0" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              
+              <div className="text-sm text-slate-500 mb-4">
+                Selected: {capacityPairCheck.selectedPair.length} of 2
+              </div>
+              
+              <button onClick={checkCapacities} disabled={capacityPairCheck.selectedPair.length !== 2 || capacityPairCheck.feedback === 'correct'}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors">
+                {capacityPairCheck.feedback === 'correct' ? 'Continuing...' : 'Check My Selection'}
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // Screen 5: Scenario A Introduction
+      if (screen === 5) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">Practice Scenario</h2>
+              <p className="text-slate-600 mb-6">Let's walk through a realistic situation using the 5 steps.</p>
+              
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-500 p-6 rounded-r-lg mb-6">
+                <h3 className="text-lg font-semibold text-slate-800 mb-3">{UNIT_1_CONFIG.scenarioA.title}</h3>
+                <p className="text-slate-700 leading-relaxed">{UNIT_1_CONFIG.scenarioA.story}</p>
+              </div>
+              
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
+                <p className="text-sm text-blue-800">
+                  <strong>Remember:</strong> Keep {context.capLabel} online as you work through this.
+                </p>
+              </div>
+              
+              <button onClick={() => goToScreen(6)} 
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                Start Practice
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // Screen 6: Step 1 - Identify the Trap
+      if (screen === 6) {
+        const selectedOption = scenarioAnswers.A.trap;
+        const isAnswered = selectedOption !== null;
+        const isCorrect = selectedOption === UNIT_1_CONFIG.scenarioA.correctTrap;
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+              <div className="flex items-center mb-4">
+                <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold mr-3">1</span>
+                <h2 className="text-2xl font-bold text-slate-800">Catch the Story</h2>
+              </div>
+              
+              <p className="text-slate-600 mb-6">First, identify the automatic negative story and label which trap it is.</p>
+              
+              <div className="bg-slate-50 border-l-4 border-slate-400 p-4 rounded-r-lg mb-6">
+                <p className="text-sm text-slate-600 mb-1">The automatic story:</p>
+                <p className="text-slate-800 font-medium">"{UNIT_1_CONFIG.scenarioA.automaticStory}"</p>
+              </div>
+
+              {isAnswered && !isCorrect && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r-lg">
+                  <p className="text-red-800 font-medium">Not quite. Try again.</p>
+                  <p className="text-sm text-red-700 mt-1">Think about what kind of assumption is being made here.</p>
+                </div>
+              )}
+
+              {isAnswered && isCorrect && (
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4 rounded-r-lg">
+                  <p className="text-green-800 font-medium">✓ Correct! This is {UNIT_1_CONFIG.scenarioA.correctTrap}.</p>
+                  <p className="text-sm text-green-700 mt-1">You're assuming you know what they're thinking without evidence.</p>
+                </div>
+              )}
+              
+              <p className="font-medium text-slate-800 mb-4">Which cognitive trap is this?</p>
+              
+              <div className="space-y-2 mb-6">
+                {UNIT_1_CONFIG.traps.map((trap) => (
+                  <button
+                    key={trap}
+                    onClick={() => handleScenarioMCAnswer('A', 'trap', trap, trap === UNIT_1_CONFIG.scenarioA.correctTrap)}
+                    disabled={isCorrect}
+                    className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                      selectedOption === trap 
+                        ? (isCorrect ? 'border-green-500 bg-green-50' : 'border-red-300 bg-red-50')
+                        : 'border-slate-200 hover:border-slate-300'
+                    } ${isCorrect ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <span className="font-medium text-slate-800">{trap}</span>
+                  </button>
+                ))}
+              </div>
+              
+              {isCorrect && (
+                <button onClick={() => goToScreen(7)} 
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                  Continue to Step 2
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // Screen 7: Step 2 - Generate Testable Reframe
+      if (screen === 7) {
+        const selectedOption = scenarioAnswers.A.reframe;
+        const isAnswered = selectedOption !== null;
+        const selectedOptionData = isAnswered ? 
+          UNIT_1_CONFIG.scenarioA.reframeOptions.find(o => o.id === selectedOption) : null;
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+              <div className="flex items-center mb-4">
+                <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold mr-3">2</span>
+                <h2 className="text-2xl font-bold text-slate-800">Generate a Testable Reframe</h2>
+              </div>
+              
+              <p className="text-slate-600 mb-6">Now create a neutral, testable alternative to the negative story.</p>
+
+              {isAnswered && selectedOptionData && (
+                <div className={`border-l-4 p-4 mb-4 rounded-r-lg ${
+                  selectedOptionData.correct 
+                    ? 'bg-green-50 border-green-500' 
+                    : 'bg-red-50 border-red-500'
+                }`}>
+                  <p className={`font-medium ${selectedOptionData.correct ? 'text-green-800' : 'text-red-800'}`}>
+                    {selectedOptionData.feedback}
+                  </p>
+                </div>
+              )}
+              
+              <p className="font-medium text-slate-800 mb-4">Which is the best testable reframe?</p>
+              
+              <div className="space-y-3 mb-6">
+                {UNIT_1_CONFIG.scenarioA.reframeOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => handleScenarioMCAnswer('A', 'reframe', option.id, option.correct)}
+                    disabled={selectedOptionData?.correct}
+                    className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                      selectedOption === option.id
+                        ? (option.correct ? 'border-green-500 bg-green-50' : 'border-red-300 bg-red-50')
+                        : 'border-slate-200 hover:border-slate-300'
+                    } ${selectedOptionData?.correct ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <p className="text-slate-700">{option.text}</p>
+                  </button>
+                ))}
+              </div>
+              
+              {selectedOptionData?.correct && (
+                <button onClick={() => goToScreen(8)} 
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                  Continue to Step 3
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // Screen 8: Step 3 - Run a Micro-proof
+      if (screen === 8) {
+        const selectedOption = scenarioAnswers.A.microProof;
+        const isAnswered = selectedOption !== null;
+        const selectedOptionData = isAnswered ? 
+          UNIT_1_CONFIG.scenarioA.microProofOptions.find(o => o.id === selectedOption) : null;
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+              <div className="flex items-center mb-4">
+                <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold mr-3">3</span>
+                <h2 className="text-2xl font-bold text-slate-800">Run a Micro-proof</h2>
+              </div>
+              
+              <p className="text-slate-600 mb-6">Choose a small, concrete way to test your reframe.</p>
+
+              {isAnswered && selectedOptionData && (
+                <div className={`border-l-4 p-4 mb-4 rounded-r-lg ${
+                  selectedOptionData.correct 
+                    ? 'bg-green-50 border-green-500' 
+                    : 'bg-red-50 border-red-500'
+                }`}>
+                  <p className={`font-medium ${selectedOptionData.correct ? 'text-green-800' : 'text-red-800'}`}>
+                    {selectedOptionData.feedback}
+                  </p>
+                </div>
+              )}
+              
+              <p className="font-medium text-slate-800 mb-4">What's the best micro-proof?</p>
+              
+              <div className="space-y-3 mb-6">
+                {UNIT_1_CONFIG.scenarioA.microProofOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => handleScenarioMCAnswer('A', 'microProof', option.id, option.correct)}
+                    disabled={selectedOptionData?.correct}
+                    className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                      selectedOption === option.id
+                        ? (option.correct ? 'border-green-500 bg-green-50' : 'border-red-300 bg-red-50')
+                        : 'border-slate-200 hover:border-slate-300'
+                    } ${selectedOptionData?.correct ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <p className="text-slate-700">{option.text}</p>
+                  </button>
+                ))}
+              </div>
+              
+              {selectedOptionData?.correct && (
+                <button onClick={() => goToScreen(9)} 
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                  Continue to Step 4
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // Screen 9: Step 4 - Commit to First Step
+      if (screen === 9) {
+        const selectedOption = scenarioAnswers.A.firstStep;
+        const isAnswered = selectedOption !== null;
+        const selectedOptionData = isAnswered ? 
+          UNIT_1_CONFIG.scenarioA.firstStepOptions.find(o => o.id === selectedOption) : null;
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+              <div className="flex items-center mb-4">
+                <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold mr-3">4</span>
+                <h2 className="text-2xl font-bold text-slate-800">Commit to Tiny First Step</h2>
+              </div>
+              
+              <p className="text-slate-600 mb-6">What's the smallest concrete action you can take right now?</p>
+
+              {isAnswered && selectedOptionData && (
+                <div className={`border-l-4 p-4 mb-4 rounded-r-lg ${
+                  selectedOptionData.correct 
+                    ? 'bg-green-50 border-green-500' 
+                    : 'bg-red-50 border-red-500'
+                }`}>
+                  <p className={`font-medium ${selectedOptionData.correct ? 'text-green-800' : 'text-red-800'}`}>
+                    {selectedOptionData.feedback}
+                  </p>
+                </div>
+              )}
+              
+              <p className="font-medium text-slate-800 mb-4">What's your first step?</p>
+              
+              <div className="space-y-3 mb-6">
+                {UNIT_1_CONFIG.scenarioA.firstStepOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => handleScenarioMCAnswer('A', 'firstStep', option.id, option.correct)}
+                    disabled={selectedOptionData?.correct}
+                    className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                      selectedOption === option.id
+                        ? (option.correct ? 'border-green-500 bg-green-50' : 'border-red-300 bg-red-50')
+                        : 'border-slate-200 hover:border-slate-300'
+                    } ${selectedOptionData?.correct ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <p className="text-slate-700">{option.text}</p>
+                  </button>
+                ))}
+              </div>
+              
+              {selectedOptionData?.correct && (
+                <button onClick={() => goToScreen(10)} 
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                  Continue to Your Real Situation
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // Screen 10: Real Run - Your Situation
+      if (screen === 10) {
+        const canContinue = realRun.situation.trim().length > 10 &&
+                          realRun.story.trim().length > 5 &&
+                          realRun.trap !== null &&
+                          realRun.reframe.trim().length > 5 &&
+                          realRun.microProof.trim().length > 5 &&
+                          realRun.firstStep.trim().length > 5;
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">Your Real Situation</h2>
+              <p className="text-slate-600 mb-6">Now apply the 5 steps to something happening in your life right now.</p>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Describe a situation where you're having a negative automatic story:
+                  </label>
+                  <textarea
+                    value={realRun.situation}
+                    onChange={(e) => setRealRun(prev => ({ ...prev, situation: e.target.value }))}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 min-h-24"
+                    placeholder="e.g., My colleague didn't respond to my message..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    What's the automatic negative story?
+                  </label>
+                  <input
+                    type="text"
+                    value={realRun.story}
+                    onChange={(e) => setRealRun(prev => ({ ...prev, story: e.target.value }))}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., They're upset with me..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Which trap is this?
+                  </label>
+                  <div className="space-y-2">
+                    {UNIT_1_CONFIG.traps.map((trap) => (
+                      <button
+                        key={trap}
+                        onClick={() => setRealRun(prev => ({ ...prev, trap }))}
+                        className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                          realRun.trap === trap ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <span className="text-slate-800">{trap}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    What's a testable reframe?
+                  </label>
+                  <textarea
+                    value={realRun.reframe}
+                    onChange={(e) => setRealRun(prev => ({ ...prev, reframe: e.target.value }))}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 min-h-20"
+                    placeholder="A neutral alternative you can test..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    What's your micro-proof?
+                  </label>
+                  <textarea
+                    value={realRun.microProof}
+                    onChange={(e) => setRealRun(prev => ({ ...prev, microProof: e.target.value }))}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 min-h-20"
+                    placeholder="A small, concrete way to test your reframe..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    What's your tiny first step?
+                  </label>
+                  <input
+                    type="text"
+                    value={realRun.firstStep}
+                    onChange={(e) => setRealRun(prev => ({ ...prev, firstStep: e.target.value }))}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Something you can do in the next 10 minutes..."
+                  />
+                </div>
+              </div>
+
+              <button 
+                onClick={() => goToScreen(11)} 
+                disabled={!canContinue}
+                className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors">
+                Continue
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // Screen 11: Summary & Commitment
+      if (screen === 11) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">Your Plan Summary</h2>
+              <p className="text-slate-600 mb-6">Here's what you committed to. Save this or screenshot it.</p>
+              
+              <div className="space-y-4 mb-6">
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <p className="text-sm font-medium text-slate-600 mb-1">Situation:</p>
+                  <p className="text-slate-800">{realRun.situation}</p>
+                </div>
+
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <p className="text-sm font-medium text-slate-600 mb-1">Automatic Story:</p>
+                  <p className="text-slate-800">{realRun.story}</p>
+                </div>
+
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <p className="text-sm font-medium text-slate-600 mb-1">Trap Type:</p>
+                  <p className="text-slate-800">{realRun.trap}</p>
+                </div>
+
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <p className="text-sm font-medium text-blue-900 mb-1">Testable Reframe:</p>
+                  <p className="text-slate-800">{realRun.reframe}</p>
+                </div>
+
+                <div className="bg-green-50 rounded-lg p-4">
+                  <p className="text-sm font-medium text-green-900 mb-1">Micro-proof:</p>
+                  <p className="text-slate-800">{realRun.microProof}</p>
+                </div>
+
+                <div className="bg-purple-50 rounded-lg p-4">
+                  <p className="text-sm font-medium text-purple-900 mb-1">First Step:</p>
+                  <p className="text-slate-800 font-semibold">{realRun.firstStep}</p>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
+                <p className="text-amber-900 font-medium">When will you do your first step?</p>
+                <input
+                  type="text"
+                  value={realRun.ifThen}
+                  onChange={(e) => setRealRun(prev => ({ ...prev, ifThen: e.target.value }))}
+                  className="w-full mt-2 px-4 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                  placeholder="e.g., As soon as I close this tab..."
+                />
+              </div>
+
+              <button 
+                onClick={() => goToScreen(12)} 
+                disabled={!realRun.ifThen.trim()}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors">
+                Continue to Final Check
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // Screen 12: Final Ratings
+      if (screen === 12) {
+        const allRated = ratings.complexity !== null && 
+                        ratings.value !== null && 
+                        ratings.confidence !== null;
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">Quick Reflection</h2>
+              <p className="text-slate-600 mb-6">Three quick ratings to help improve the training.</p>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-3">
+                    How complex was this session?
+                  </label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <button
+                        key={val}
+                        onClick={() => setRatings(prev => ({ ...prev, complexity: val }))}
+                        className={`flex-1 py-3 rounded-lg border-2 transition-all ${
+                          ratings.complexity === val 
+                            ? 'border-blue-500 bg-blue-50 text-blue-700 font-semibold' 
+                            : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                        }`}
+                      >
+                        {val}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-1 text-xs text-slate-500">
+                    <span>Too easy</span>
+                    <span>Too hard</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-3">
+                    How valuable was this practice?
+                  </label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <button
+                        key={val}
+                        onClick={() => setRatings(prev => ({ ...prev, value: val }))}
+                        className={`flex-1 py-3 rounded-lg border-2 transition-all ${
+                          ratings.value === val 
+                            ? 'border-green-500 bg-green-50 text-green-700 font-semibold' 
+                            : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                        }`}
+                      >
+                        {val}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-1 text-xs text-slate-500">
+                    <span>Not useful</span>
+                    <span>Very useful</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-3">
+                    How confident are you that you'll use this?
+                  </label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <button
+                        key={val}
+                        onClick={() => setRatings(prev => ({ ...prev, confidence: val }))}
+                        className={`flex-1 py-3 rounded-lg border-2 transition-all ${
+                          ratings.confidence === val 
+                            ? 'border-purple-500 bg-purple-50 text-purple-700 font-semibold' 
+                            : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                        }`}
+                      >
+                        {val}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-1 text-xs text-slate-500">
+                    <span>Won't use it</span>
+                    <span>Definitely will</span>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => goToScreen(13)} 
+                disabled={!allRated}
+                className="w-full mt-8 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors">
+                Complete Session
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // Screen 13: Completion
+      if (screen === 13) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8 flex items-center justify-center">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
+              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-10 h-10 text-white" />
+              </div>
+              
+              <h2 className="text-3xl font-bold text-slate-800 mb-3">Session Complete!</h2>
+              <p className="text-lg text-slate-600 mb-6">
+                You've practiced the Reframe + Micro-proof operator.
+              </p>
+              
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-6 rounded-r-lg mb-6 text-left">
+                <h3 className="font-semibold text-slate-800 mb-3">Remember:</h3>
+                <ul className="space-y-2 text-slate-700">
+                  <li className="flex items-start">
+                    <ChevronRight className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <span>Use this when negative stories create stress or avoidance</span>
+                  </li>
+                  <li className="flex items-start">
+                    <ChevronRight className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <span>Keep {context.capLabel} online to stay on track</span>
+                  </li>
+                  <li className="flex items-start">
+                    <ChevronRight className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <span>Your first step: {realRun.firstStep}</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6 text-left">
+                <p className="text-sm text-amber-900">
+                  <strong>Next time:</strong> Try using this in real-time when you notice a negative story starting.
+                </p>
+              </div>
+
+              <button 
+                onClick={() => setScreen(-1)}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                Start New Session
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      return null;
+    };
+
+    ReactDOM.render(<MindwareUnit1 />, document.getElementById('root'));
+  </script>
+</body>
+</html>
