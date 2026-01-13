@@ -1,1 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Trident Brand Mock Screens</title>
+
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+  <style>
+    :root{
+      --primary: #22AAFF;
+      --lime: #CCFF66;
+      --white: #FFFFFF;
+      --grey-100: #E0E0E0;
+      --grey-600: #6D6D6D;
+      --deep: #2764B7;
+
+      --radius: 16px;
+      --radius-sm: 12px;
+      --shadow: 0 10px 24px rgba(0,0,0,0.10);
+      --shadow-soft: 0 8px 18px rgba(0,0,0,0.08);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    body{
+      margin:0;
+      font-family: var(--font);
+      background: #F6F7F8;
+      color: #111;
+    }
+
+    .wrap{
+      display:flex;
+      gap:24px;
+      padding:24px;
+      align-items:flex-start;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+
+    /* phone-ish canvas */
+    .phone{
+      width: 380px;
+      height: 760px;
+      border-radius: 28px;
+      overflow:hidden;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(0,0,0,0.08);
+      background: var(--white);
+    }
+
+    .screen{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:16px 16px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .brandleft{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+
+    .icon{
+      width:36px;
+      height:36px;
+      border-radius: 12px;
+      background: rgba(34,170,255,0.12);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      border: 1px solid rgba(34,170,255,0.25);
+    }
+    .icon img{
+      width:28px;
+      height:28px;
+      display:block;
+    }
+
+    .title{
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+      margin:0;
+    }
+    .subtitle{
+      margin:2px 0 0;
+      font-size: 12px;
+      color: var(--grey-600);
+    }
+
+    .chip{
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(204,255,102,0.65);
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .content{
+      padding: 18px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      flex: 1;
+      overflow:auto;
+    }
+
+    .card{
+      border-radius: var(--radius);
+      padding: 14px 14px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(0,0,0,0.06);
+      background: var(--white);
+    }
+
+    .h1{
+      font-size: 22px;
+      font-weight: 900;
+      margin: 0 0 6px 0;
+      letter-spacing: -0.2px;
+    }
+    .p{
+      margin:0;
+      color: var(--grey-600);
+      line-height: 1.35;
+      font-size: 13px;
+    }
+
+    .btnRow{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top: 10px;
+    }
+
+    .btn{
+      appearance:none;
+      border:0;
+      cursor:pointer;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 900;
+      font-size: 13px;
+      transition: transform 0.06s ease, opacity 0.2s ease;
+      user-select:none;
+    }
+    .btn:active{ transform: scale(0.99); }
+
+    .btnPrimary{
+      background: var(--primary);
+      color: var(--white);
+      box-shadow: 0 10px 22px rgba(34,170,255,0.25);
+    }
+    .btnSecondary{
+      background: rgba(39,100,183,0.08);
+      border: 1px solid rgba(39,100,183,0.18);
+      color: var(--deep);
+    }
+
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-top: 8px;
+    }
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 12px 12px;
+      border-radius: 14px;
+      background: rgba(224,224,224,0.35);
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+    .row strong{ font-size: 13px; }
+    .row span{ font-size: 12px; color: var(--grey-600); }
+
+    .footer{
+      padding: 12px 16px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      font-size: 12px;
+      color: var(--grey-600);
+      background: rgba(255,255,255,0.6);
+    }
+    .link{
+      color: var(--deep);
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    /* ---- Theme skins (all still use your palette) ---- */
+
+    /* 1) Airy Light */
+    .theme-airy{
+      background: #F6F7F8;
+    }
+    .theme-airy .phone{ background: #FFFFFF; }
+    .theme-airy .topbar{ background: #FFFFFF; }
+
+    /* 2) Cyan Glow (soft gradient + “glass” cards) */
+    .theme-glow{
+      background: radial-gradient(900px 500px at 30% 10%, rgba(34,170,255,0.22), transparent 55%),
+                  radial-gradient(900px 600px at 80% 20%, rgba(204,255,102,0.20), transparent 55%),
+                  #F6F7F8;
+    }
+    .theme-glow .phone{
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(10px);
+    }
+    .theme-glow .card{
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: blur(12px);
+    }
+    .theme-glow .topbar{
+      background: rgba(255,255,255,0.70);
+      backdrop-filter: blur(12px);
+    }
+
+    /* 3) Deep Blue Header (crisp, “serious”) */
+    .theme-deep{
+      background: #EEF3FA;
+    }
+    .theme-deep .topbar{
+      background: linear-gradient(135deg, rgba(39,100,183,1), rgba(34,170,255,1));
+      color: #FFFFFF;
+      border-bottom: 0;
+    }
+    .theme-deep .topbar .subtitle{ color: rgba(255,255,255,0.82); }
+    .theme-deep .topbar .chip{
+      background: rgba(204,255,102,0.95);
+      color:#0B1A0B;
+    }
+    .theme-deep .icon{
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.28);
+    }
+    .theme-deep .link{ color: #FFFFFF; }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const THEMES = [
+      { id: 'theme-airy', name: 'Airy Light' },
+      { id: 'theme-glow', name: 'Cyan Glow' },
+      { id: 'theme-deep', name: 'Deep Blue Header' }
+    ];
+
+    const BrandTopBar = ({ appName, subtitle, chipText, iconSrc }) => (
+      <div className="topbar">
+        <div className="brandleft">
+          <div className="icon" title="App icon">
+            {/* Swap this for your real SVG path */}
+            <img src={iconSrc} alt="Trident icon" onError={(e)=>{ e.target.style.display='none'; }} />
+          </div>
+          <div>
+            <p className="title">{appName}</p>
+            <p className="subtitle">{subtitle}</p>
+          </div>
+        </div>
+        <div className="chip">{chipText}</div>
+      </div>
+    );
+
+    const SplashMock = ({ iconSrc }) => (
+      <div className="screen">
+        <BrandTopBar
+          appName="Mindware Lab"
+          subtitle="Trident G • Cognitive tools"
+          chipText="MVP"
+          iconSrc={iconSrc}
+        />
+        <div className="content">
+          <div className="card">
+            <h1 className="h1">Capacity Training Coach</h1>
+            <p className="p">
+              Quick daily flow: re-enter the Zone, play your DNB session, then run one mindware unit to lock in a portable move.
+            </p>
+            <div className="btnRow">
+              <button className="btn btnPrimary">Start session</button>
+              <button className="btn btnSecondary">How it works</button>
+            </div>
+          </div>
+
+          <div className="card">
+            <strong style={{fontSize:'13px'}}>What you’ll do (6–10 mins)</strong>
+            <div className="list">
+              <div className="row"><strong>1) Zone check</strong><span>20 seconds</span></div>
+              <div className="row"><strong>2) DNB game</strong><span>Anchor / Swap</span></div>
+              <div className="row"><strong>3) Mindware unit</strong><span>1 wrapper swap</span></div>
+            </div>
+          </div>
+        </div>
+        <div className="footer">
+          <span>Local-first • No account</span>
+          <a className="link" href="#" onClick={(e)=>e.preventDefault()}>Privacy</a>
+        </div>
+      </div>
+    );
+
+    const ExampleScreenMock = ({ iconSrc }) => (
+      <div className="screen">
+        <BrandTopBar
+          appName="Cognitive Tracking"
+          subtitle="Pre / Post battery"
+          chipText="Today"
+          iconSrc={iconSrc}
+        />
+        <div className="content">
+          <div className="card">
+            <h1 className="h1">Your battery</h1>
+            <p className="p">
+              Run the same tests pre and post training. Results are saved locally and can be exported as JSON.
+            </p>
+            <div className="btnRow">
+              <button className="btn btnPrimary">Run pre-battery</button>
+              <button className="btn btnSecondary">Export results</button>
+            </div>
+          </div>
+
+          <div className="card">
+            <strong style={{fontSize:'13px'}}>Tests</strong>
+            <div className="list">
+              <div className="row"><strong>Working memory</strong><span>Not started</span></div>
+              <div className="row"><strong>Processing speed</strong><span>Completed</span></div>
+              <div className="row"><strong>Reasoning</strong><span>Not started</span></div>
+              <div className="row"><strong>Attention control</strong><span>Completed</span></div>
+              <div className="row"><strong>External IQ test</strong><span>Manual entry</span></div>
+            </div>
+          </div>
+
+          <div className="card">
+            <strong style={{fontSize:'13px'}}>Next best action</strong>
+            <p className="p">Do one short test now, then return here. Keep the battery consistent (same order, same conditions) for clean comparisons.</p>
+            <div className="btnRow">
+              <button className="btn btnPrimary">Open next test</button>
+              <button className="btn btnSecondary">Enter external score</button>
+            </div>
+          </div>
+        </div>
+        <div className="footer">
+          <span>Schema: ct_v1</span>
+          <a className="link" href="#" onClick={(e)=>e.preventDefault()}>Return</a>
+        </div>
+      </div>
+    );
+
+    const App = () => {
+      const [theme, setTheme] = useState(THEMES[0].id);
+
+      // Put your SVG here (rename it to a stable filename across repos)
+      const iconSrc = "./assets/Trident-Icon.svg";
+
+      return (
+        <div className={"wrap " + theme}>
+          <div style={{width:'100%', maxWidth:'820px'}}>
+            <div style={{display:'flex', gap:'10px', flexWrap:'wrap', margin:'0 0 14px 0'}}>
+              {THEMES.map(t => (
+                <button
+                  key={t.id}
+                  className={"btn " + (theme === t.id ? "btnPrimary" : "btnSecondary")}
+                  onClick={() => setTheme(t.id)}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+
+            <div style={{display:'flex', gap:'18px', flexWrap:'wrap'}}>
+              <div className="phone">
+                <SplashMock iconSrc={iconSrc}/>
+              </div>
+              <div className="phone">
+                <ExampleScreenMock iconSrc={iconSrc}/>
+              </div>
+            </div>
+
+            <div style={{marginTop:'14px', color:'#6D6D6D', fontSize:'12px'}}>
+              Tip: once you pick a theme, lock it in a shared <code>brand.css</code> and use CSS variables across all apps.
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
 
